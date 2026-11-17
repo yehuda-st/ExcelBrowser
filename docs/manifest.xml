@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:type="TaskPaneApp">
+  <Id>e683fb9c-cf4c-4cc5-95f5-391f6a8f254b</Id>
+  <Version>1.0.0.0</Version>
+  <ProviderName>ExcelBrowser</ProviderName>
+  <DefaultLocale>en-US</DefaultLocale>
+  <DisplayName DefaultValue="ExcelBrowser"/>
+  <Description DefaultValue="Test HTML JavaScript communication with Excel."/>
+  <IconUrl DefaultValue="https://yehuda-st.github.io/ExcelBrowser/icon.png"/>
+  <SupportUrl DefaultValue="https://github.com/yehuda-st/ExcelBrowser"/>
+  <AppDomains><AppDomain>https://yehuda-st.github.io</AppDomain></AppDomains>
+  <Hosts><Host Name="Workbook"/></Hosts>
+  <DefaultSettings><SourceLocation DefaultValue="https://yehuda-st.github.io/ExcelBrowser/"/></DefaultSettings>
+  <Permissions>ReadWriteDocument</Permissions>
+</OfficeApp>
