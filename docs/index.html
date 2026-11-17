@@ -22,7 +22,6 @@
   <section class="section"><h3>הוספת תיעוד חדש</h3>
    <form id="addForm">
     <div class="field"><label for="dischargeDate">תאריך שחרור מתוכנן</label><div class="inline"><input type="date" id="dischargeDate"><button type="button" class="btn secondary" id="clearDate">נקה תאריך</button></div><label class="note"><input type="checkbox" id="cancelDischarge" style="width:auto"> ביטול מועד השחרור שנקבע</label><small class="note">ביטול או מחיקת תאריך יישמרו כתיעוד חדש וחתום, ללא שינוי הרשומה הקודמת.</small></div>
-    <div class="field"><label for="decisionAt">מועד קבלת החלטה</label><input type="datetime-local" id="decisionAt"><small class="note">מתמלא אוטומטית בעת שינוי תאריך השחרור; ניתן לתקן ידנית</small></div>
     <div class="field"><label for="noticeDate">מועד הודעה למשפחה</label><div class="inline"><input type="datetime-local" id="noticeDate"><button class="btn secondary" id="now" type="button">עכשיו</button></div></div>
     <div class="field"><label for="recipient">למי נמסרה ההודעה</label><input id="recipient" autocomplete="off" placeholder="שם וקרבה למטופל"></div>
     <div class="field"><label for="remarks">הערות</label><textarea id="remarks" rows="2"></textarea></div>
@@ -82,13 +81,13 @@ function openEditor(id){
  const a=store.admissions.find(x=>x.id===id);if(!a)return;selected=id;
  $("modalTitle").textContent=a.name+" · ת״ז "+a.patientId+" · חדר "+a.room;
  const r=latestFor(a),container=$("latest");container.replaceChildren();
- if(r){[["תעודת זהות",a.patientId],["תאריך שחרור",r.cancelled?"בוטל":r.dischargeDate?dischargeLabel(r.dischargeDate):"לא נקבע"],["מועד החלטה",dateLabel(r.decisionAt)],["מועד הודעה",dateLabel(r.noticeAt)],["נמסר ל",r.recipient],["מוסר ההודעה",r.messenger],["חתום על ידי",r.signer],["מועד חתימה",dateLabel(r.createdAt)],["הערות",r.remarks]].forEach(([l,v])=>fact(container,l,v));}
+ if(r){[["תעודת זהות",a.patientId],["תאריך שחרור",r.cancelled?"בוטל":r.dischargeDate?dischargeLabel(r.dischargeDate):"לא נקבע"],["מועד הודעה",dateLabel(r.noticeAt)],["נמסר ל",r.recipient],["הערות",r.remarks],["מוסר ההודעה",r.messenger],["חתום על ידי",r.signer],["מועד חתימה",dateLabel(r.createdAt)]].forEach(([l,v])=>fact(container,l,v));}
  else fact(container,"תיעוד","עדיין לא נקבע תאריך שחרור");
  const history=$("history");history.replaceChildren();
  const previous=recordsFor(a).slice(0,-1).reverse();
  if(!previous.length)history.append(el("p","אין רשומות קודמות","note"));
  previous.forEach(x=>{const article=document.createElement("article");article.textContent=dateLabel(x.createdAt)+" · שחרור "+(x.cancelled?"בוטל":x.dischargeDate?dischargeLabel(x.dischargeDate):"לא נקבע")+" · הודעה "+dateLabel(x.noticeAt)+" · "+(x.recipient||"לא נמסרה")+" · חותם "+(x.signer||"—");history.append(article)});
- $("addForm").reset();$("cancelDischarge").checked=false;$("dischargeDate").disabled=false;$("dischargeDate").value=r?.dischargeDate||"";$("decisionAt").value="";$("noticeDate").value="";$("messenger").value="";$("signer").value=sessionDefaults.signer;$("formError").textContent="";
+ $("addForm").reset();$("cancelDischarge").checked=false;$("dischargeDate").disabled=false;$("dischargeDate").value=r?.dischargeDate||"";$("noticeDate").value="";$("messenger").value="";$("signer").value=sessionDefaults.signer;$("formError").textContent="";
  $("editor").showModal();
 }
 function updateNoticeDefaults(){
@@ -97,32 +96,23 @@ function updateNoticeDefaults(){
   if(!$("signer").value)$("signer").value=sessionDefaults.signer;
  }
 }
-function updateDecisionTime(){
- const a=store.admissions.find(x=>x.id===selected);
- if(a&&($("cancelDischarge").checked||$("dischargeDate").value!==(latestFor(a)?.dischargeDate||"")))$("decisionAt").value=nowLocal();
- else $("decisionAt").value="";
-}
-$("clearDate").addEventListener("click",()=>{$("dischargeDate").value="";$("cancelDischarge").checked=true;$("dischargeDate").disabled=true;updateDecisionTime()});
-$("cancelDischarge").addEventListener("change",()=>{const on=$("cancelDischarge").checked;$("dischargeDate").disabled=on;if(on)$("dischargeDate").value="";else $("dischargeDate").value=latestFor(store.admissions.find(x=>x.id===selected))?.dischargeDate||"";updateDecisionTime()});
-$("dischargeDate").addEventListener("change",()=>{
- updateDecisionTime();
-});
+$("clearDate").addEventListener("click",()=>{$("dischargeDate").value="";$("cancelDischarge").checked=true;$("dischargeDate").disabled=true});
+$("cancelDischarge").addEventListener("change",()=>{const on=$("cancelDischarge").checked;$("dischargeDate").disabled=on;if(on)$("dischargeDate").value="";else $("dischargeDate").value=latestFor(store.admissions.find(x=>x.id===selected))?.dischargeDate||""});
 $("now").addEventListener("click",()=>{$("noticeDate").value=nowLocal();updateNoticeDefaults()});
 $("noticeDate").addEventListener("change",updateNoticeDefaults);
 $("recipient").addEventListener("input",updateNoticeDefaults);
 $("addForm").addEventListener("submit",e=>{
  e.preventDefault();const a=store.admissions.find(x=>x.id===selected);if(!a)return;
- const old=latestFor(a),cancelled=$("cancelDischarge").checked,dischargeDate=cancelled?"":$("dischargeDate").value,decisionAt=$("decisionAt").value,noticeAt=$("noticeDate").value,recipient=$("recipient").value.trim(),messenger=$("messenger").value.trim(),signer=$("signer").value.trim(),remarks=$("remarks").value.trim();
+ const old=latestFor(a),cancelled=$("cancelDischarge").checked,dischargeDate=cancelled?"":$("dischargeDate").value,noticeAt=$("noticeDate").value,recipient=$("recipient").value.trim(),messenger=$("messenger").value.trim(),signer=$("signer").value.trim(),remarks=$("remarks").value.trim();
  const changedDate=cancelled!==Boolean(old?.cancelled)||dischargeDate!==(old?.dischargeDate||"");
  const error=$("formError");
  if(!dischargeDate&&!cancelled){error.textContent="יש להזין תאריך שחרור או לסמן ביטול.";return}
  if(cancelled&&!old?.dischargeDate&&!old?.cancelled){error.textContent="אין תאריך שחרור קודם לביטול.";return}
- if(changedDate&&!decisionAt){error.textContent="יש להזין מועד קבלת החלטה עבור תאריך שחרור חדש.";return}
  if(!changedDate&&!noticeAt&&!recipient&&!remarks){error.textContent="לא הוזן תיעוד חדש.";return}
  if(Boolean(noticeAt)!==Boolean(recipient)){error.textContent="יש למלא גם מועד הודעה וגם למי נמסרה.";return}
  if(noticeAt&&!messenger){error.textContent="יש להזין את שם מוסר ההודעה.";return}
  if(!signer){error.textContent="יש להזין את שם החותם.";return}
- const record={id:crypto.randomUUID(),admissionId:a.id,dischargeDate,cancelled,decisionAt:changedDate?decisionAt:(old?.decisionAt||decisionAt),noticeAt,recipient,messenger:noticeAt?messenger:"",signer,remarks,createdAt:new Date().toISOString()};
+ const record={id:crypto.randomUUID(),admissionId:a.id,dischargeDate,cancelled,noticeAt,recipient,messenger:noticeAt?messenger:"",signer,remarks,createdAt:new Date().toISOString()};
  // Append-only: never mutate an existing signed record.
  store.records.push(record);
  if(messenger)sessionDefaults.messenger=messenger;
