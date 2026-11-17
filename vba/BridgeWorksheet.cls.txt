@@ -1,83 +1,81 @@
 Option Explicit
 
-' Paste this entire code into the Bridge WORKSHEET code module (not a standard module).
-' Bridge!A3 must contain =A1. Excel calculation must be Automatic.
-' Prototype only: appends to DischargeRecords table in THIS workbook.
-' Later the append operation will target the shared DischargeData.xlsx workbook.
+' Paste into the Bridge worksheet code module.
+' Bridge!Z2 = Z1; calculation mode Automatic.
+' BridgeQueue is an Excel Table on Bridge. Each row is a durable command
+' only after the workbook is saved. This prototype writes to Data in this workbook.
 Private Sub Worksheet_Calculate()
-    Static processing As Boolean
-    Dim commandId As String
-    If processing Then Exit Sub
-    commandId = CStr(Me.Range("A1").Value2)
-    If Len(commandId) = 0 Then Exit Sub
-    If CStr(Me.Range("A6").Value2) = commandId Then Exit Sub
-    If CStr(Me.Range("A4").Value2) <> "PENDING" Then Exit Sub
+    Static busy As Boolean
+    If busy Then Exit Sub
+    busy = True
+    On Error GoTo SafeExit
+    ProcessQueue
+SafeExit:
+    busy = False
+End Sub
 
-    processing = True
-    On Error GoTo Failed
+Private Sub ProcessQueue()
+    Dim queue As ListObject, data As ListObject, job As ListRow
+    Set queue = Me.ListObjects("BridgeQueue")
+    Set data = ThisWorkbook.Worksheets("Data").ListObjects("DischargeRecords")
+    For Each job In queue.ListRows
+        If CStr(GetField(queue, job, "Status")) = "PENDING" Then
+            On Error GoTo JobFailed
+            If CStr(GetField(queue, job, "Action")) <> "ADD" Then _
+                Err.Raise vbObjectError + 210, , "Unsupported action"
+            AddRecord queue, job, data
+            SetField queue, job, "Result", "Saved to DischargeRecords"
+            SetField queue, job, "Status", "DONE"
+            On Error GoTo 0
+        End If
+ContinueJobs:
+    Next job
+    Exit Sub
+JobFailed:
+    Dim errorMessage As String
+    errorMessage = Err.Description
+    Err.Clear
+    On Error Resume Next
+    SetField queue, job, "Result", errorMessage
+    SetField queue, job, "Status", "ERROR"
+    On Error GoTo 0
+    Resume ContinueJobs
+End Sub
 
-    If CStr(Me.Range("A2").Value2) <> "ADD" Then Err.Raise vbObjectError + 200, , "Unknown command"
-
-    Dim t As ListObject
-    Set t = ThisWorkbook.Worksheets("Data").ListObjects("DischargeRecords")
-
+Private Sub AddRecord(ByVal q As ListObject, ByVal job As ListRow, ByVal t As ListObject)
     Dim patientId As String, admissionDate As String, recordId As String
-    patientId = CStr(Me.Range("B2").Value2)
-    admissionDate = CStr(Me.Range("C2").Value2)
-    recordId = CStr(Me.Range("D2").Value2)
+    patientId = CStr(GetField(q, job, "PatientID"))
+    admissionDate = CStr(GetField(q, job, "AdmissionDate"))
+    recordId = CStr(GetField(q, job, "RecordID"))
+    If Len(patientId) = 0 Or Len(admissionDate) = 0 Or Len(recordId) = 0 Then _
+        Err.Raise vbObjectError + 211, , "Missing patient, admission, or record ID"
 
-    If Len(patientId) = 0 Or Len(admissionDate) = 0 Or Len(recordId) = 0 Then
-        Err.Raise vbObjectError + 201, , "Missing admission or record ID"
-    End If
-
-    ' Idempotency: a retry must never append a duplicate record.
-    Dim row As ListRow
-    For Each row In t.ListRows
-        If CStr(row.Range.Cells(1, t.ListColumns("RecordID").Index).Value2) = recordId Then
-            GoTo Completed
+    Dim r As ListRow, source As ListRow
+    For Each r In t.ListRows
+        If CStr(GetField(t, r, "RecordID")) = recordId Then Exit Sub
+        If CStr(GetField(t, r, "PatientID")) = patientId And _
+           CStr(GetField(t, r, "AdmissionDate")) = admissionDate Then
+            If source Is Nothing Then Set source = r
         End If
-    Next row
-
-    ' Find the census placeholder/current patient row to copy identifying details.
-    Dim sourceRow As ListRow
-    For Each row In t.ListRows
-        If CStr(row.Range.Cells(1, t.ListColumns("PatientID").Index).Text) = patientId _
-           And CStr(row.Range.Cells(1, t.ListColumns("AdmissionDate").Index).Text) = admissionDate Then
-            Set sourceRow = row
-            Exit For
-        End If
-    Next row
-    If sourceRow Is Nothing Then Err.Raise vbObjectError + 202, , "Admission not found in Data table"
+    Next r
+    If source Is Nothing Then Err.Raise vbObjectError + 212, , "Admission not found"
 
     Dim added As ListRow
     Set added = t.ListRows.Add
     SetField t, added, "PatientID", patientId
     SetField t, added, "AdmissionDate", admissionDate
-    SetField t, added, "PatientName", GetField(t, sourceRow, "PatientName")
-    SetField t, added, "Room", GetField(t, sourceRow, "Room")
-    SetField t, added, "AdmissionStatus", GetField(t, sourceRow, "AdmissionStatus")
+    SetField t, added, "PatientName", GetField(t, source, "PatientName")
+    SetField t, added, "Room", GetField(t, source, "Room")
+    SetField t, added, "AdmissionStatus", GetField(t, source, "AdmissionStatus")
     SetField t, added, "RecordID", recordId
-    SetField t, added, "DischargeDate", CStr(Me.Range("E2").Value2)
-    SetField t, added, "Cancelled", Me.Range("F2").Value2
-    SetField t, added, "NoticeAt", CStr(Me.Range("G2").Value2)
-    SetField t, added, "Recipient", CStr(Me.Range("H2").Value2)
-    SetField t, added, "Messenger", CStr(Me.Range("I2").Value2)
-    SetField t, added, "Remarks", CStr(Me.Range("J2").Value2)
-    SetField t, added, "Signer", CStr(Me.Range("K2").Value2)
-    SetField t, added, "SignedAt", CStr(Me.Range("L2").Value2)
-
-Completed:
-    Me.Range("A5").Value2 = "Saved to workbook table"
-    Me.Range("A6").Value2 = commandId
-    Me.Range("A4").Value2 = "SUCCESS"
-    processing = False
-    Exit Sub
-
-Failed:
-    Me.Range("A5").Value2 = Err.Description
-    Me.Range("A6").Value2 = commandId
-    Me.Range("A4").Value2 = "ERROR"
-    processing = False
+    SetField t, added, "DischargeDate", GetField(q, job, "DischargeDate")
+    SetField t, added, "Cancelled", GetField(q, job, "Cancelled")
+    SetField t, added, "NoticeAt", GetField(q, job, "NoticeAt")
+    SetField t, added, "Recipient", GetField(q, job, "Recipient")
+    SetField t, added, "Messenger", GetField(q, job, "Messenger")
+    SetField t, added, "Remarks", GetField(q, job, "Remarks")
+    SetField t, added, "Signer", GetField(q, job, "Signer")
+    SetField t, added, "SignedAt", GetField(q, job, "SignedAt")
 End Sub
 
 Private Sub SetField(ByVal t As ListObject, ByVal r As ListRow, ByVal columnName As String, ByVal value As Variant)
