@@ -1,0 +1,89 @@
+Option Explicit
+
+' Paste this entire code into the Bridge WORKSHEET code module (not a standard module).
+' Bridge!A3 must contain =A1. Excel calculation must be Automatic.
+' Prototype only: appends to DischargeRecords table in THIS workbook.
+' Later the append operation will target the shared DischargeData.xlsx workbook.
+Private Sub Worksheet_Calculate()
+    Static processing As Boolean
+    Dim commandId As String
+    If processing Then Exit Sub
+    commandId = CStr(Me.Range("A1").Value2)
+    If Len(commandId) = 0 Then Exit Sub
+    If CStr(Me.Range("A6").Value2) = commandId Then Exit Sub
+    If CStr(Me.Range("A4").Value2) <> "PENDING" Then Exit Sub
+
+    processing = True
+    On Error GoTo Failed
+
+    If CStr(Me.Range("A2").Value2) <> "ADD" Then Err.Raise vbObjectError + 200, , "Unknown command"
+
+    Dim t As ListObject
+    Set t = ThisWorkbook.Worksheets("Data").ListObjects("DischargeRecords")
+
+    Dim patientId As String, admissionDate As String, recordId As String
+    patientId = CStr(Me.Range("B2").Value2)
+    admissionDate = CStr(Me.Range("C2").Value2)
+    recordId = CStr(Me.Range("D2").Value2)
+
+    If Len(patientId) = 0 Or Len(admissionDate) = 0 Or Len(recordId) = 0 Then
+        Err.Raise vbObjectError + 201, , "Missing admission or record ID"
+    End If
+
+    ' Idempotency: a retry must never append a duplicate record.
+    Dim row As ListRow
+    For Each row In t.ListRows
+        If CStr(row.Range.Cells(1, t.ListColumns("RecordID").Index).Value2) = recordId Then
+            GoTo Completed
+        End If
+    Next row
+
+    ' Find the census placeholder/current patient row to copy identifying details.
+    Dim sourceRow As ListRow
+    For Each row In t.ListRows
+        If CStr(row.Range.Cells(1, t.ListColumns("PatientID").Index).Text) = patientId _
+           And CStr(row.Range.Cells(1, t.ListColumns("AdmissionDate").Index).Text) = admissionDate Then
+            Set sourceRow = row
+            Exit For
+        End If
+    Next row
+    If sourceRow Is Nothing Then Err.Raise vbObjectError + 202, , "Admission not found in Data table"
+
+    Dim added As ListRow
+    Set added = t.ListRows.Add
+    SetField t, added, "PatientID", patientId
+    SetField t, added, "AdmissionDate", admissionDate
+    SetField t, added, "PatientName", GetField(t, sourceRow, "PatientName")
+    SetField t, added, "Room", GetField(t, sourceRow, "Room")
+    SetField t, added, "AdmissionStatus", GetField(t, sourceRow, "AdmissionStatus")
+    SetField t, added, "RecordID", recordId
+    SetField t, added, "DischargeDate", CStr(Me.Range("E2").Value2)
+    SetField t, added, "Cancelled", Me.Range("F2").Value2
+    SetField t, added, "NoticeAt", CStr(Me.Range("G2").Value2)
+    SetField t, added, "Recipient", CStr(Me.Range("H2").Value2)
+    SetField t, added, "Messenger", CStr(Me.Range("I2").Value2)
+    SetField t, added, "Remarks", CStr(Me.Range("J2").Value2)
+    SetField t, added, "Signer", CStr(Me.Range("K2").Value2)
+    SetField t, added, "SignedAt", CStr(Me.Range("L2").Value2)
+
+Completed:
+    Me.Range("A5").Value2 = "Saved to workbook table"
+    Me.Range("A6").Value2 = commandId
+    Me.Range("A4").Value2 = "SUCCESS"
+    processing = False
+    Exit Sub
+
+Failed:
+    Me.Range("A5").Value2 = Err.Description
+    Me.Range("A6").Value2 = commandId
+    Me.Range("A4").Value2 = "ERROR"
+    processing = False
+End Sub
+
+Private Sub SetField(ByVal t As ListObject, ByVal r As ListRow, ByVal columnName As String, ByVal value As Variant)
+    r.Range.Cells(1, t.ListColumns(columnName).Index).Value2 = value
+End Sub
+
+Private Function GetField(ByVal t As ListObject, ByVal r As ListRow, ByVal columnName As String) As Variant
+    GetField = r.Range.Cells(1, t.ListColumns(columnName).Index).Value2
+End Function
