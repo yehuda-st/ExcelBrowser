@@ -1,57 +1,132 @@
 <!doctype html>
-<html lang="en">
+<html lang="he" dir="rtl">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>ExcelBrowser</title>
-  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
-  <style>
-    body { font-family: Segoe UI, Arial, sans-serif; margin: 20px; color: #202124; }
-    input, button { font: inherit; padding: 8px; }
-    input { width: 100%; box-sizing: border-box; margin: 8px 0 12px; }
-    button { background: #176b42; color: white; border: 0; border-radius: 4px; cursor: pointer; }
-    button:disabled { opacity: .5; cursor: default; }
-    #status { white-space: pre-wrap; margin-top: 16px; }
-  </style>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>מעקב שחרורים</title>
+<script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+<style>
+:root{font-family:"Segoe UI",Arial,sans-serif;color:#1e293b;background:#f4f7fb}*{box-sizing:border-box}body{margin:0}button,input,textarea{font:inherit}button{cursor:pointer}header{background:#173d5c;color:white;padding:16px 20px}header h1{font-size:21px;margin:0 0 4px}header small{opacity:.85}.wrap{padding:18px;max-width:1300px;margin:auto}.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}input[type=search]{min-width:180px;flex:1;padding:10px;border:1px solid #cbd5e1;border-radius:8px}.pill{background:#e1eaf3;border-radius:20px;padding:7px 12px;font-size:13px}.panel{background:white;border:1px solid #dce4ed;border-radius:12px;overflow:auto;box-shadow:0 2px 8px #173d5c0a}table{width:100%;border-collapse:collapse;text-align:right;font-size:14px}th,td{padding:12px 10px;border-bottom:1px solid #e8edf2;white-space:nowrap}th{background:#f1f5f9;color:#334155}tbody tr{cursor:pointer}tbody tr:hover{background:#eaf4ff}.muted{color:#64748b}.ok{color:#166534}.pending{color:#a16207}.empty{padding:25px;text-align:center;color:#64748b}.hint{font-size:12px;color:#64748b;margin-top:10px}.btn{border:0;border-radius:8px;padding:9px 14px;background:#176b42;color:white}.btn.secondary{background:#e8edf2;color:#24384b}.btn:disabled{opacity:.45;cursor:not-allowed}dialog{border:0;border-radius:14px;padding:0;width:min(690px,calc(100vw - 20px));max-height:94vh;box-shadow:0 18px 65px #0004}dialog::backdrop{background:#13283b99}.modal-head{padding:17px 20px;background:#173d5c;color:white;display:flex;justify-content:space-between;align-items:center}.modal-head h2{font-size:19px;margin:0}.modal-body{padding:18px 20px;overflow:auto;max-height:calc(94vh - 125px)}.section{border:1px solid #dce4ed;border-radius:10px;padding:14px;margin-bottom:16px}.section h3{font-size:16px;margin:0 0 12px}.old{background:#f7f9fc}.facts{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px}.fact small{display:block;color:#64748b;margin-bottom:3px}.fact span{white-space:pre-wrap}.field{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}.field label{font-size:13px;font-weight:600}.field input,.field textarea{border:1px solid #cbd5e1;border-radius:7px;padding:9px;width:100%;background:white}.field textarea{resize:vertical}.inline{display:flex;gap:8px;align-items:center}.inline input{flex:1;min-width:0}.footer{display:flex;justify-content:flex-end;gap:8px;padding:12px 20px;border-top:1px solid #e2e8f0;background:white}.history{margin-top:14px}.history summary{cursor:pointer;font-weight:600}.history article{padding:9px;border-bottom:1px solid #e2e8f0;font-size:13px}.error{color:#b91c1c;font-size:13px;white-space:pre-wrap}.success{color:#166534;font-size:13px}.note{font-size:12px;color:#64748b}.topline{display:flex;justify-content:space-between;align-items:center;gap:10px}#noticeDate{direction:ltr;text-align:right}@media(max-width:520px){.wrap{padding:10px}.facts{grid-template-columns:1fr}.modal-body{padding:12px}th,td{padding:10px 7px}}
+</style>
 </head>
 <body>
-  <h2>ExcelBrowser</h2>
-  <p>Write a value to cell A1 of the active worksheet, then read it back.</p>
-  <label for="value">Value</label>
-  <input id="value" value="Hello from JavaScript">
-  <button id="test" disabled>Write &amp; Read A1</button>
-  <div id="status" role="status">Waiting for Office...</div>
-  <script>
-    const status = document.getElementById('status');
-    const button = document.getElementById('test');
-    Office.onReady(function(info) {
-      if (info.host !== Office.HostType.Excel) {
-        status.textContent = 'Open this page as an Excel Office Add-in.';
-        return;
-      }
-      status.textContent = 'Excel connected. Ready.';
-      button.disabled = false;
-    });
-    button.addEventListener('click', async function() {
-      button.disabled = true;
-      status.textContent = 'Writing and reading...';
-      try {
-        const input = document.getElementById('value').value;
-        const output = await Excel.run(async function(context) {
-          const cell = context.workbook.worksheets.getActiveWorksheet().getRange('A1');
-          cell.values = [[input]];
-          await context.sync();
-          cell.load('values');
-          await context.sync();
-          return cell.values[0][0];
-        });
-        status.textContent = 'Success! A1 = ' + String(output);
-      } catch (err) {
-        status.textContent = 'Error: ' + (err.message || String(err));
-      } finally {
-        button.disabled = false;
-      }
-    });
-  </script>
-</body>
-</html>
+<header><h1>מעקב תאריכי שחרור והודעות למשפחות</h1><small id="mode">נתוני הדגמה · ללא חיבור לקובצי Excel</small></header>
+<main class="wrap">
+ <div class="toolbar"><input id="search" type="search" placeholder="חיפוש לפי שם, חדר או תעודת זהות" aria-label="חיפוש מטופל"><span class="pill" id="count"></span><button class="btn secondary" id="reset">אפס נתוני הדגמה</button></div>
+ <div class="panel"><table><thead><tr><th>חדר</th><th>מטופל</th><th>תאריך קבלה</th><th>תאריך שחרור מתוכנן</th><th>הודעה למשפחה</th><th>תיעוד אחרון</th></tr></thead><tbody id="patients"></tbody></table><div id="empty" class="empty" hidden>אין מטופלים להצגה</div></div>
+ <p class="hint">לחיצה כפולה על שורה פותחת את התיעוד. בגרסת ההדגמה ניתן גם ללחוץ פעם אחת. הנתונים נמצאים בזיכרון הדף בלבד ויימחקו ברענון.</p>
+</main>
+<dialog id="editor" aria-labelledby="modalTitle">
+ <div class="modal-head"><h2 id="modalTitle"></h2><button class="btn secondary" id="closeTop" type="button">סגור</button></div>
+ <div class="modal-body">
+  <section class="section old"><div class="topline"><h3>התיעוד האחרון — לקריאה בלבד</h3><span class="note">לא ניתן לעריכה</span></div><div class="facts" id="latest"></div><details class="history"><summary>היסטוריית רשומות קודמות</summary><div id="history"></div></details></section>
+  <section class="section"><h3>הוספת תיעוד חדש</h3>
+   <form id="addForm">
+    <div class="field"><label for="dischargeDate">תאריך שחרור מתוכנן</label><input type="date" id="dischargeDate"></div>
+    <div class="field"><label for="decisionAt">מועד קבלת החלטה</label><input type="datetime-local" id="decisionAt"><small class="note">מתמלא אוטומטית בעת שינוי תאריך השחרור; ניתן לתקן ידנית</small></div>
+    <div class="field"><label for="noticeDate">מועד הודעה למשפחה</label><div class="inline"><input type="datetime-local" id="noticeDate"><button class="btn secondary" id="now" type="button">עכשיו</button></div></div>
+    <div class="field"><label for="recipient">למי נמסרה ההודעה</label><input id="recipient" autocomplete="off" placeholder="שם וקרבה למטופל"></div>
+    <div class="field"><label for="messenger">מוסר ההודעה</label><input id="messenger" autocomplete="off" placeholder="שם איש הצוות"></div>
+    <div class="field"><label for="signer">שם החותם</label><input id="signer" autocomplete="off" placeholder="שם המתעד"></div>
+    <div class="field"><label for="remarks">הערות</label><textarea id="remarks" rows="2"></textarea></div>
+    <div id="formError" class="error" role="alert"></div>
+   </form>
+  </section>
+ </div>
+ <div class="footer"><button class="btn secondary" id="cancel" type="button">ביטול</button><button class="btn" id="add" type="submit" form="addForm">הוסף</button></div>
+</dialog>
+<script>
+"use strict";
+// Future adapter: replace createDemoStore() with Excel Table loading; UI consumes the same arrays.
+// Every record is immutable. Current display derives from the newest record per admission.
+const seedAdmissions=[
+ {id:"a1",patientId:"012345678",name:"שרה כהן",room:"12",admissionDate:"2026-11-03",active:true},
+ {id:"a2",patientId:"023456789",name:"יוסף לוי",room:"14",admissionDate:"2026-11-08",active:true},
+ {id:"a3",patientId:"034567890",name:"רחל ישראלי",room:"18",admissionDate:"2026-11-11",active:true},
+ {id:"a4",patientId:"045678901",name:"משה ברק",room:"21",admissionDate:"2026-10-25",active:true},
+ {id:"a5",patientId:"012345678",name:"שרה כהן",room:"9",admissionDate:"2026-09-02",active:false}
+];
+const seedRecords=[
+ {id:"r1",admissionId:"a1",dischargeDate:"2026-11-23",decisionAt:"2026-11-16T10:00",noticeAt:"2026-11-16T14:30",recipient:"בת המטופלת",messenger:"ד״ר ישראלי",signer:"ד״ר כהן",remarks:"המשפחה עודכנה",createdAt:"2026-11-16T14:35:00"},
+ {id:"r2",admissionId:"a1",dischargeDate:"2026-11-26",decisionAt:"2026-11-17T09:00",noticeAt:"",recipient:"",messenger:"",signer:"ד״ר כהן",remarks:"נדחה בעקבות בירור נוסף",createdAt:"2026-11-17T09:05:00"},
+ {id:"r3",admissionId:"a2",dischargeDate:"2026-11-25",decisionAt:"2026-11-17T10:00",noticeAt:"2026-11-17T11:15",recipient:"בן המטופל",messenger:"אחות ראשית",signer:"אחות ראשית",remarks:"",createdAt:"2026-11-17T11:20:00"},
+ {id:"r4",admissionId:"a3",dischargeDate:"2026-11-27",decisionAt:"2026-11-17T12:00",noticeAt:"",recipient:"",messenger:"",signer:"ד״ר כהן",remarks:"",createdAt:"2026-11-17T12:02:00"},
+ {id:"r5",admissionId:"a5",dischargeDate:"2026-09-22",decisionAt:"2026-09-18T10:00",noticeAt:"2026-09-18T11:00",recipient:"בת",messenger:"אחות",signer:"ד״ר לוי",remarks:"",createdAt:"2026-09-18T11:02:00"}
+];
+function createDemoStore(){return {admissions:structuredClone(seedAdmissions),records:structuredClone(seedRecords)}}
+let store=createDemoStore(),selected=null;
+const sessionDefaults={messenger:"",signer:""};
+const $=id=>document.getElementById(id);
+const dateLabel=s=>s?new Date(s.length===10?s+"T12:00:00":s).toLocaleString("he-IL",{day:"2-digit",month:"2-digit",year:"numeric",...(s.length>10?{hour:"2-digit",minute:"2-digit"}:{})}):"—";
+const nowLocal=()=>{const d=new Date();const z=n=>String(n).padStart(2,"0");return d.getFullYear()+"-"+z(d.getMonth()+1)+"-"+z(d.getDate())+"T"+z(d.getHours())+":"+z(d.getMinutes())};
+const key=a=>a.patientId+"|"+a.admissionDate;
+const recordsFor=a=>store.records.filter(r=>r.admissionId===a.id).sort((x,y)=>x.createdAt.localeCompare(y.createdAt)||x.id.localeCompare(y.id));
+const latestFor=a=>recordsFor(a).at(-1)||null;
+function el(tag,text,cls){const node=document.createElement(tag);node.textContent=text;if(cls)node.className=cls;return node}
+function render(){
+ const q=$("search").value.trim().toLowerCase(),body=$("patients");body.replaceChildren();
+ const active=store.admissions.filter(a=>a.active);
+ const visible=active.filter(a=>[a.name,a.room,a.patientId].some(s=>s.toLowerCase().includes(q)));
+ $("count").textContent=active.length+" מטופלים נוכחיים";
+ for(const a of visible){
+  const r=latestFor(a),tr=document.createElement("tr");tr.tabIndex=0;
+  const fields=[a.room,a.name,dateLabel(a.admissionDate),r?dateLabel(r.dischargeDate):"טרם נקבע",r?(r.noticeAt?"נמסרה · "+dateLabel(r.noticeAt):"טרם נמסרה"):"—",r?dateLabel(r.createdAt):"—"];
+  fields.forEach((v,i)=>tr.append(el("td",v,i===4&&r?(r.noticeAt?"ok":"pending"):"")));
+  tr.addEventListener("dblclick",()=>openEditor(a.id));tr.addEventListener("click",()=>openEditor(a.id));
+  tr.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();openEditor(a.id)}});body.append(tr);
+ }
+ $("empty").hidden=visible.length!==0;
+}
+function fact(container,label,value){const box=document.createElement("div");box.className="fact";box.append(el("small",label),el("span",value||"—"));container.append(box)}
+function openEditor(id){
+ const a=store.admissions.find(x=>x.id===id);if(!a)return;selected=id;
+ $("modalTitle").textContent=a.name+" · חדר "+a.room;
+ const r=latestFor(a),container=$("latest");container.replaceChildren();
+ if(r){[["תאריך שחרור",dateLabel(r.dischargeDate)],["מועד החלטה",dateLabel(r.decisionAt)],["מועד הודעה",dateLabel(r.noticeAt)],["נמסר ל",r.recipient],["מוסר ההודעה",r.messenger],["חתום על ידי",r.signer],["מועד חתימה",dateLabel(r.createdAt)],["הערות",r.remarks]].forEach(([l,v])=>fact(container,l,v));}
+ else fact(container,"תיעוד","עדיין לא נקבע תאריך שחרור");
+ const history=$("history");history.replaceChildren();
+ const previous=recordsFor(a).slice(0,-1).reverse();
+ if(!previous.length)history.append(el("p","אין רשומות קודמות","note"));
+ previous.forEach(x=>{const article=document.createElement("article");article.textContent=dateLabel(x.createdAt)+" · שחרור "+dateLabel(x.dischargeDate)+" · הודעה "+dateLabel(x.noticeAt)+" · "+(x.recipient||"לא נמסרה")+" · חותם "+(x.signer||"—");history.append(article)});
+ $("addForm").reset();$("dischargeDate").value=r?.dischargeDate||"";$("decisionAt").value="";$("noticeDate").value="";$("messenger").value="";$("signer").value=sessionDefaults.signer;$("formError").textContent="";
+ $("editor").showModal();
+}
+function updateNoticeDefaults(){
+ if($("noticeDate").value||$("recipient").value.trim()){
+  if(!$("messenger").value)$("messenger").value=sessionDefaults.messenger;
+  if(!$("signer").value)$("signer").value=sessionDefaults.signer;
+ }
+}
+$("dischargeDate").addEventListener("change",()=>{
+ const a=store.admissions.find(x=>x.id===selected);
+ if(a&&$("dischargeDate").value!== (latestFor(a)?.dischargeDate||""))$("decisionAt").value=nowLocal();
+ else $("decisionAt").value="";
+});
+$("now").addEventListener("click",()=>{$("noticeDate").value=nowLocal();updateNoticeDefaults()});
+$("noticeDate").addEventListener("change",updateNoticeDefaults);
+$("recipient").addEventListener("input",updateNoticeDefaults);
+$("addForm").addEventListener("submit",e=>{
+ e.preventDefault();const a=store.admissions.find(x=>x.id===selected);if(!a)return;
+ const old=latestFor(a),dischargeDate=$("dischargeDate").value,decisionAt=$("decisionAt").value,noticeAt=$("noticeDate").value,recipient=$("recipient").value.trim(),messenger=$("messenger").value.trim(),signer=$("signer").value.trim(),remarks=$("remarks").value.trim();
+ const changedDate=dischargeDate!==(old?.dischargeDate||"");
+ const error=$("formError");
+ if(!dischargeDate){error.textContent="יש להזין תאריך שחרור.";return}
+ if(changedDate&&!decisionAt){error.textContent="יש להזין מועד קבלת החלטה עבור תאריך שחרור חדש.";return}
+ if(!changedDate&&!noticeAt&&!recipient&&!remarks){error.textContent="לא הוזן תיעוד חדש.";return}
+ if(Boolean(noticeAt)!==Boolean(recipient)){error.textContent="יש למלא גם מועד הודעה וגם למי נמסרה.";return}
+ if(noticeAt&&!messenger){error.textContent="יש להזין את שם מוסר ההודעה.";return}
+ if(!signer){error.textContent="יש להזין את שם החותם.";return}
+ const record={id:crypto.randomUUID(),admissionId:a.id,dischargeDate,decisionAt:changedDate?decisionAt:(old?.decisionAt||decisionAt),noticeAt,recipient,messenger:noticeAt?messenger:"",signer,remarks,createdAt:new Date().toISOString()};
+ // Append-only: never mutate an existing signed record.
+ store.records.push(record);
+ if(messenger)sessionDefaults.messenger=messenger;
+ sessionDefaults.signer=signer;
+ $("editor").close();render();
+});
+$("closeTop").addEventListener("click",()=>$("editor").close());
+$("cancel").addEventListener("click",()=>$("editor").close());
+$("search").addEventListener("input",render);
+$("reset").addEventListener("click",()=>{if(confirm("לאפס את כל השינויים בנתוני ההדגמה?")){store=createDemoStore();selected=null;render()}});
+render();
+if(typeof Office!=="undefined"&&Office.onReady)Office.onReady(()=>{$("mode").textContent="נתוני הדגמה · Office.js זמין, טרם מחובר לטבלאות Excel"});
+</script>
+</body></html>
