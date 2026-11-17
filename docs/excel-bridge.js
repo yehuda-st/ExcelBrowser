@@ -38,7 +38,7 @@ window.ExcelDischargeBridge = (() => {
   });
  }
  const QUEUE="BridgeQueue";
- const QUEUE_HEADERS=["CommandID","Status","Action","PatientID","AdmissionDate","RecordID","DischargeDate","Cancelled","NoticeAt","Recipient","Messenger","Remarks","Signer","SignedAt","Result"];
+ const QUEUE_HEADERS=["CommandID","Status","Action","PatientID","AdmissionDate","RecordID","DischargeDate","Cancelled","NoticeAt","Recipient","Messenger","Remarks","Signer","SignedAt","Result","Trigger"];
  const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
  async function submit(record,patient){
   const commandId=record.id; // Stable ID: retrying the same record cannot duplicate a command.
@@ -55,14 +55,16 @@ window.ExcelDischargeBridge = (() => {
     const values={CommandID:commandId,Status:"PENDING",Action:"ADD",PatientID:patient.patientId,
      AdmissionDate:patient.admissionDate,RecordID:record.id,DischargeDate:record.dischargeDate,
      Cancelled:record.cancelled?1:0,NoticeAt:record.noticeAt,Recipient:record.recipient,
-     Messenger:record.messenger,Remarks:record.remarks,Signer:record.signer,SignedAt:record.createdAt,Result:""};
+     Messenger:record.messenger,Remarks:record.remarks,Signer:record.signer,SignedAt:record.createdAt,Result:"",Trigger:""};
     queue.rows.add(null,[names.map(n=>values[n]??"")]);
     await context.sync();
+    // Formula in this command's own row, inserted only after its data is complete.
+    const data=queue.getDataBodyRange();
+    const last=data.getLastRow();
+    last.getCell(0,names.indexOf("Trigger")).formulas=[["=[@CommandID]"]];
+    await context.sync();
    }
-   // Trigger AFTER queue row exists. VBA processes all pending commands.
-   const ws=context.workbook.worksheets.getItem(SHEET);
-   ws.getRange("Z1").values=[[commandId]];
-   await context.sync();
+  
   });
   for(let i=0;i<30;i++){
    await sleep(500);
