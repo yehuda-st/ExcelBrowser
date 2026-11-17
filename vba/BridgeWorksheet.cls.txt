@@ -1,7 +1,7 @@
 Option Explicit
 
 ' Paste into the Bridge worksheet code module.
-' Bridge!Z2 = Z1; calculation mode Automatic.
+' Each BridgeQueue row has a Trigger formula =[@CommandID]; calculation Automatic.
 ' BridgeQueue is an Excel Table on Bridge. Each row is a durable command
 ' only after the workbook is saved. This prototype writes to Data in this workbook.
 Private Sub Worksheet_Calculate()
