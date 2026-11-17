@@ -40,12 +40,12 @@ window.ExcelDischargeBridge = (() => {
  const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
  async function submit(record,patient){
   const commandId="cmd-"+Date.now()+"-"+Math.random().toString(36).slice(2);
-  const payload=JSON.stringify({commandId,action:"ADD",patientId:patient.patientId,admissionDate:patient.admissionDate,record});
+  const values=["ADD",patient.patientId,patient.admissionDate,record.id,record.dischargeDate,record.cancelled?1:0,record.noticeAt,record.recipient,record.messenger,record.remarks,record.signer,record.createdAt];
   // A1 is the LAST write, so Worksheet_Calculate never sees an incomplete payload.
   await Excel.run(async context=>{
    const ws=context.workbook.worksheets.getItem(SHEET);
-   const command=ws.getRange("A1"),data=ws.getRange("A2"),status=ws.getRange("A4"),message=ws.getRange("A5");
-   data.values=[[payload]];status.values=[["PENDING"]];message.values=[[""]];
+   const command=ws.getRange("A1"),data=ws.getRange("A2:L2"),status=ws.getRange("A4"),message=ws.getRange("A5"),ack=ws.getRange("A6");
+   data.values=[values];status.values=[["PENDING"]];message.values=[[""]];ack.values=[[""]];
    await context.sync();command.values=[[commandId]];await context.sync();
   });
   for(let i=0;i<30;i++){
