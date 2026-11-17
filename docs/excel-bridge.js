@@ -37,28 +37,47 @@ window.ExcelDischargeBridge = (() => {
    return {admissions:[...admissions.values()],records};
   });
  }
+ const QUEUE="BridgeQueue";
+ const QUEUE_HEADERS=["CommandID","Status","Action","PatientID","AdmissionDate","RecordID","DischargeDate","Cancelled","NoticeAt","Recipient","Messenger","Remarks","Signer","SignedAt","Result"];
  const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
  async function submit(record,patient){
-  const commandId="cmd-"+Date.now()+"-"+Math.random().toString(36).slice(2);
-  const values=["ADD",patient.patientId,patient.admissionDate,record.id,record.dischargeDate,record.cancelled?1:0,record.noticeAt,record.recipient,record.messenger,record.remarks,record.signer,record.createdAt];
-  // A1 is the LAST write, so Worksheet_Calculate never sees an incomplete payload.
+  const commandId=record.id; // Stable ID: retrying the same record cannot duplicate a command.
   await Excel.run(async context=>{
+   const queue=context.workbook.tables.getItem(QUEUE);
+   const header=queue.getHeaderRowRange(),body=queue.getDataBodyRangeOrNullObject();
+   header.load("values");body.load(["values","isNullObject"]);await context.sync();
+   const names=header.values[0].map(String);
+   const missing=QUEUE_HEADERS.filter(n=>!names.includes(n));
+   if(missing.length)throw Error("חסרות עמודות ב־BridgeQueue: "+missing.join(", "));
+   const rows=body.isNullObject?[]:body.values;
+   const index=names.indexOf("CommandID");
+   if(!rows.some(row=>String(row[index])===commandId)){
+    const values={CommandID:commandId,Status:"PENDING",Action:"ADD",PatientID:patient.patientId,
+     AdmissionDate:patient.admissionDate,RecordID:record.id,DischargeDate:record.dischargeDate,
+     Cancelled:record.cancelled?1:0,NoticeAt:record.noticeAt,Recipient:record.recipient,
+     Messenger:record.messenger,Remarks:record.remarks,Signer:record.signer,SignedAt:record.createdAt,Result:""};
+    queue.rows.add(null,[names.map(n=>values[n]??"")]);
+    await context.sync();
+   }
+   // Trigger AFTER queue row exists. VBA processes all pending commands.
    const ws=context.workbook.worksheets.getItem(SHEET);
-   const command=ws.getRange("A1"),data=ws.getRange("A2:L2"),status=ws.getRange("A4"),message=ws.getRange("A5"),ack=ws.getRange("A6");
-   data.values=[values];status.values=[["PENDING"]];message.values=[[""]];ack.values=[[""]];
-   await context.sync();command.values=[[commandId]];await context.sync();
+   ws.getRange("Z1").values=[[commandId]];
+   await context.sync();
   });
   for(let i=0;i<30;i++){
    await sleep(500);
    const result=await Excel.run(async context=>{
-    const ws=context.workbook.worksheets.getItem(SHEET);
-    const range=ws.getRange("A4:A6");range.load("values");await context.sync();return range.values.map(r=>String(r[0]??""));
+    const queue=context.workbook.tables.getItem(QUEUE);
+    const header=queue.getHeaderRowRange(),body=queue.getDataBodyRangeOrNullObject();
+    header.load("values");body.load(["values","isNullObject"]);await context.sync();
+    const names=header.values[0].map(String),rows=body.isNullObject?[]:body.values;
+    const row=rows.find(r=>String(r[names.indexOf("CommandID")])===commandId);
+    return row?{status:String(row[names.indexOf("Status")]),message:String(row[names.indexOf("Result")]||"")}:null;
    });
-   if(result[2]!==commandId)continue;
-   if(result[0]==="SUCCESS")return result[1];
-   if(result[0]==="ERROR")throw Error(result[1]||"פעולת VBA נכשלה");
+   if(result?.status==="DONE")return result.message;
+   if(result?.status==="ERROR")throw Error(result.message||"VBA reported an error; the queued row was retained.");
   }
-  throw Error("לא התקבל אישור מ־VBA. אין לשלוח שוב לפני בדיקה אם הרשומה נשמרה.");
+  throw Error("הפקודה נשארה בתור ללא אישור. בדוק את BridgeQueue לפני ניסיון חוזר.");
  }
- return {load,submit,TABLE,SHEET,HEADERS};
+ return {load,submit,TABLE,SHEET,HEADERS,QUEUE,QUEUE_HEADERS};
 })();
