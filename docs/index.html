@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ExcelBrowser</title>
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+  <style>
+    body { font-family: Segoe UI, Arial, sans-serif; margin: 20px; color: #202124; }
+    input, button { font: inherit; padding: 8px; }
+    input { width: 100%; box-sizing: border-box; margin: 8px 0 12px; }
+    button { background: #176b42; color: white; border: 0; border-radius: 4px; cursor: pointer; }
+    button:disabled { opacity: .5; cursor: default; }
+    #status { white-space: pre-wrap; margin-top: 16px; }
+  </style>
+</head>
+<body>
+  <h2>ExcelBrowser</h2>
+  <p>Write a value to cell A1 of the active worksheet, then read it back.</p>
+  <label for="value">Value</label>
+  <input id="value" value="Hello from JavaScript">
+  <button id="test" disabled>Write &amp; Read A1</button>
+  <div id="status" role="status">Waiting for Office...</div>
+  <script>
+    const status = document.getElementById('status');
+    const button = document.getElementById('test');
+    Office.onReady(function(info) {
+      if (info.host !== Office.HostType.Excel) {
+        status.textContent = 'Open this page as an Excel Office Add-in.';
+        return;
+      }
+      status.textContent = 'Excel connected. Ready.';
+      button.disabled = false;
+    });
+    button.addEventListener('click', async function() {
+      button.disabled = true;
+      status.textContent = 'Writing and reading...';
+      try {
+        const input = document.getElementById('value').value;
+        const output = await Excel.run(async function(context) {
+          const cell = context.workbook.worksheets.getActiveWorksheet().getRange('A1');
+          cell.values = [[input]];
+          await context.sync();
+          cell.load('values');
+          await context.sync();
+          return cell.values[0][0];
+        });
+        status.textContent = 'Success! A1 = ' + String(output);
+      } catch (err) {
+        status.textContent = 'Error: ' + (err.message || String(err));
+      } finally {
+        button.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
