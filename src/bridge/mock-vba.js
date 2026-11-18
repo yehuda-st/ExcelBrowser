@@ -53,7 +53,14 @@ export class MockVBA {
     const file=this.files.get(p.path);
     if(!file)throw Error("File not found: "+p.path);
     if(file.locked)throw Error("File locked: "+p.path);
+    const ledger=file.appliedBatches??={};
+    if(p.batchId&&ledger[p.batchId]){
+     const prior=ledger[p.batchId];
+     if(prior.sheet!==p.sheet)throw Error("Batch ID reused with different sheet");
+     return {...clone(prior.result),alreadyApplied:true};
+    }
     if(p.expectedModifiedAt!==file.modifiedAt)throw Error("File changed since read");
+    if(p.expectedRows!==undefined&&p.expectedRows!==file.rows.length)throw Error("File row count changed");
     const changes=this.staging.get(p.sheet);
     if(!Array.isArray(changes))throw Error("Missing staging sheet: "+p.sheet);
     const rows=clone(file.rows);
@@ -68,7 +75,9 @@ export class MockVBA {
      }else throw Error("Unsupported row operation");
     }
     file.rows=rows;file.modifiedAt=new Date(Date.parse(file.modifiedAt||"2026-01-01T00:00:00Z")+1000).toISOString();
-    return {written:changes.length,modifiedAt:file.modifiedAt};
+    const result={written:changes.length,modifiedAt:file.modifiedAt};
+    if(p.batchId)ledger[p.batchId]={sheet:p.sheet,result:clone(result)};
+    return result;
    }
    default:throw Error("Unsupported action");
   }
