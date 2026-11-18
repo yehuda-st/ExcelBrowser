@@ -29,10 +29,10 @@ function AddTable($wb,$sheetName,$tableName,$headers,$rows) {
 }
 $ad=@('PatientID','AdmissionDate','PatientName','Room','AdmissionStatus')
 $rec=@('RecordID','PatientID','AdmissionDate','DischargeDate','Cancelled','NoticeAt','Recipient','Messenger','Remarks','Signer','SignedAt')
-$adRows=@(
- ,@('000000001','2026-11-01','Test Patient One','12','מאושפז')
- ,@('000000002','2026-11-02','Test Patient Two','14','מאושפז')
-)
+$adRows=New-Object System.Collections.ArrayList
+[void]$adRows.Add(@('000000001','2026-11-01','Test Patient One','12','מאושפז'))
+[void]$adRows.Add(@('000000002','2026-11-02','Test Patient Two','14','מאושפז'))
+
 try {
   $wb=$excel.Workbooks.Add()
   AddTable $wb 'Patients' 'Patients' $ad $adRows
