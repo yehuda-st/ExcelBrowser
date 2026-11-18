@@ -1,0 +1,3 @@
+PatientID,AdmissionDate,PatientName,Room,AdmissionStatus
+000000001,2026-11-01,Test Patient One,12,מאושפז
+000000002,2026-11-02,Test Patient Two,14,מאושפז
