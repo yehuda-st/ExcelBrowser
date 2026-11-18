@@ -47,7 +47,8 @@ export class MockVBA {
     if(!file)throw Error("File not found: "+p.path);
     if(file.locked)throw Error("File locked: "+p.path);
     if(!p.sheet)throw Error("Missing destination sheet");
-    this.staging.set(p.sheet,clone(file.rows));return {sheet:p.sheet,rowCount:file.rows.length,modifiedAt:file.modifiedAt};
+    const rows=p.table?(file.tables?.[p.table]??(()=>{throw Error("Table not found: "+p.table)})()):file.rows;
+    this.staging.set(p.sheet,clone(rows));return {sheet:p.sheet,rowCount:rows.length,modifiedAt:file.modifiedAt};
    }
    case "WRITE_ROWS":{
     const file=this.files.get(p.path);
@@ -56,14 +57,15 @@ export class MockVBA {
     const ledger=file.appliedBatches??={};
     if(p.batchId&&ledger[p.batchId]){
      const prior=ledger[p.batchId];
-     if(prior.sheet!==p.sheet)throw Error("Batch ID reused with different sheet");
+     if(prior.sheet!==p.sheet||prior.table!==(p.table??null))throw Error("Batch ID reused with different target");
      return {...clone(prior.result),alreadyApplied:true};
     }
     if(p.expectedModifiedAt!==file.modifiedAt)throw Error("File changed since read");
-    if(p.expectedRows!==undefined&&p.expectedRows!==file.rows.length)throw Error("File row count changed");
+    const target=p.table?(file.tables?.[p.table]??(()=>{throw Error("Table not found: "+p.table)})()):file.rows;
+    if(p.expectedRows!==undefined&&p.expectedRows!==target.length)throw Error("File row count changed");
     const changes=this.staging.get(p.sheet);
     if(!Array.isArray(changes))throw Error("Missing staging sheet: "+p.sheet);
-    const rows=clone(file.rows);
+    const rows=clone(target);
     for(const change of changes){
      if(change.operation==="UPDATE"){
       if(!Number.isInteger(change.rowIndex)||change.rowIndex<0||change.rowIndex>=rows.length)throw Error("Invalid row index");
@@ -74,9 +76,10 @@ export class MockVBA {
       rows.push(clone(change.values));
      }else throw Error("Unsupported row operation");
     }
-    file.rows=rows;file.modifiedAt=new Date(Date.parse(file.modifiedAt||"2026-01-01T00:00:00Z")+1000).toISOString();
+    if(p.table)file.tables[p.table]=rows;else file.rows=rows;
+    file.modifiedAt=new Date(Date.parse(file.modifiedAt||"2026-01-01T00:00:00Z")+1000).toISOString();
     const result={written:changes.length,modifiedAt:file.modifiedAt};
-    if(p.batchId)ledger[p.batchId]={sheet:p.sheet,result:clone(result)};
+    if(p.batchId)ledger[p.batchId]={sheet:p.sheet,table:p.table??null,result:clone(result)};
     return result;
    }
    default:throw Error("Unsupported action");
