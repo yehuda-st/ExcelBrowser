@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {MockVBA} from "../src/bridge/mock-vba.js";
+import {MockVBA} from "../docs/src/bridge/mock-vba.js";
 import {createDischargeDataAdapter} from "../docs/discharge-data-adapter.js";
 test("UI adapter loads, appends, and reloads without changing existing UI record shape",async()=>{
  const mock=new MockVBA([

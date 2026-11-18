@@ -1,9 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {MockVBA} from "../src/bridge/mock-vba.js";
-import {BridgeClient} from "../src/bridge/bridge-client.js";
-import {prepareCensusSync,applyCensusSync} from "../src/core/workflow.js";
-import {loadDischargeStore,appendDischargeRecord} from "../src/core/record-workflow.js";
+import {MockVBA} from "../docs/src/bridge/mock-vba.js";
+import {BridgeClient} from "../docs/src/bridge/bridge-client.js";
+import {prepareCensusSync,applyCensusSync} from "../docs/src/core/workflow.js";
+import {loadDischargeStore,appendDischargeRecord} from "../docs/src/core/record-workflow.js";
 const admission={PatientID:"000000001",AdmissionDate:"2026-11-01",PatientName:"A",Room:"1",AdmissionStatus:"מאושפז"};
 const record={id:"r1",admissionId:"000000001|2026-11-01",dischargeDate:"2026-11-25",cancelled:false,noticeAt:"2026-11-18T12:00",recipient:"Daughter",messenger:"Nurse",remarks:"Updated",signer:"Doctor",createdAt:"2026-11-18T12:05"};
 const make=()=>new MockVBA([

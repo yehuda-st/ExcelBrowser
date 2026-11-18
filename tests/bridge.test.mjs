@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {MockVBA} from "../src/bridge/mock-vba.js";
-import {BridgeClient} from "../src/bridge/bridge-client.js";
+import {MockVBA} from "../docs/src/bridge/mock-vba.js";
+import {BridgeClient} from "../docs/src/bridge/bridge-client.js";
 const make=()=>new MockVBA([{path:"/data.xlsx",kind:"DATA",modifiedAt:"2026-11-18T00:00:00Z",rows:[{PatientID:"001",Room:"12",AdmissionStatus:"מאושפז"}]}]);
 test("PING and INIT",async()=>{
  const mock=make(),client=new BridgeClient(mock);

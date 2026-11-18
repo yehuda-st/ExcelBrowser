@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {ExcelTransport} from "../src/bridge/excel-transport.js";
+import {ExcelTransport} from "../docs/src/bridge/excel-transport.js";
 
 test("Office transport exposes same staging and command boundary as mock",()=>{
  const t=new ExcelTransport();

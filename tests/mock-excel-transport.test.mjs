@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {BridgeClient} from "../src/bridge/bridge-client.js";
-import {MockExcelTransport} from "../src/bridge/mock-excel-transport.js";
+import {BridgeClient} from "../docs/src/bridge/bridge-client.js";
+import {MockExcelTransport} from "../docs/src/bridge/mock-excel-transport.js";
 import {createDischargeDataAdapter} from "../docs/discharge-data-adapter.js";
 
 const make=()=>new MockExcelTransport([

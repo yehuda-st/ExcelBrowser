@@ -1,9 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {planCensusSync} from "../src/core/census-sync.js";
-import {prepareCensusSync,applyCensusSync} from "../src/core/workflow.js";
-import {MockVBA} from "../src/bridge/mock-vba.js";
-import {BridgeClient} from "../src/bridge/bridge-client.js";
+import {planCensusSync} from "../docs/src/core/census-sync.js";
+import {prepareCensusSync,applyCensusSync} from "../docs/src/core/workflow.js";
+import {MockVBA} from "../docs/src/bridge/mock-vba.js";
+import {BridgeClient} from "../docs/src/bridge/bridge-client.js";
 const old=[
  {PatientID:"000000001",AdmissionDate:"2026-11-01",PatientName:"A",Room:"1",AdmissionStatus:"מאושפז",RecordID:"signed-1",Signer:"Doctor"},
  {PatientID:"000000001",AdmissionDate:"2026-11-01",PatientName:"A",Room:"1",AdmissionStatus:"מאושפז",RecordID:"signed-2",Signer:"Doctor"},
