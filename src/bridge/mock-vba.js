@@ -1,9 +1,11 @@
 import {ACTIONS} from "./command-contract.js";
 const clone=value=>structuredClone(value);
 export class MockVBA {
- constructor(files=[]){
+ constructor(files=[],settings={}){
   this.files=new Map(files.map(f=>[f.path,clone(f)]));
+  this.settings=clone(settings);
   this.staging=new Map();
+  this.bridgeFiles=[];
   this.queue=[];
   this.executed=new Map();
  }
@@ -27,7 +29,19 @@ export class MockVBA {
  execute(action,p={}){
   switch(action){
    case "PING":return {pong:true};
-   case "INIT":return {files:[...this.files.values()].map(({path,kind,modifiedAt,size})=>({path,kind,modifiedAt,size:size??0}))};
+   case "INIT":{
+    const {PatientsFolder,DataFilePath}=this.settings;
+    if(!PatientsFolder||!DataFilePath)throw Error("Missing Settings: PatientsFolder or DataFilePath");
+    const folder=PatientsFolder.replace(/[\\/]+$/,"");
+    const candidates=[...this.files.values()].filter(f=>f.path.replace(/\\/g,"/").startsWith(folder.replace(/\\/g,"/")+"/")&&/\\.xlsx?m?$/i.test(f.path));
+    candidates.sort((a,b)=>String(b.modifiedAt).localeCompare(String(a.modifiedAt))||a.path.localeCompare(b.path));
+    if(!candidates.length)throw Error("No patient files in folder: "+PatientsFolder);
+    const data=this.files.get(DataFilePath);
+    if(!data)throw Error("Data file not found: "+DataFilePath);
+    const describe=(kind,f)=>({kind,path:f.path,modifiedAt:f.modifiedAt,size:f.size??0});
+    this.bridgeFiles=[describe("PATIENTS",candidates[0]),describe("DATA",data)];
+    return {files:clone(this.bridgeFiles)};
+   }
    case "READ_FILE":{
     const file=this.files.get(p.path);
     if(!file)throw Error("File not found: "+p.path);
