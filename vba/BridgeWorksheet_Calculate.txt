@@ -1,0 +1,6 @@
+Option Explicit
+
+' Paste into the Bridge worksheet code module (not a standard module).
+Private Sub Worksheet_Calculate()
+    ProcessBridgeQueue
+End Sub
