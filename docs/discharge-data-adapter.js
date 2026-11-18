@@ -1,5 +1,5 @@
-import {BridgeClient} from "../src/bridge/bridge-client.js";
-import {loadDischargeStore,appendDischargeRecord} from "../src/core/record-workflow.js";
+import {BridgeClient} from "./src/bridge/bridge-client.js";
+import {loadDischargeStore,appendDischargeRecord} from "./src/core/record-workflow.js";
 
 /**
  * UI data adapter. The transport implements enqueue/trigger and
