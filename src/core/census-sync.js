@@ -13,10 +13,20 @@ export function admissionKey(row){
  * Compare complete current census with persisted admissions.
  * The data file may contain multiple signed records per admission: only the
  * admission metadata is updated, preserving every record and audit field.
- * Missing census patients are discharged only when completeCensus=true.
+ * Missing census patients are always discharged after validation.
  */
-export function planCensusSync(census,data,{completeCensus=false}={}){
+export function planCensusSync(census,data){
  if(!Array.isArray(census)||!Array.isArray(data))throw Error("Expected arrays");
+ if(census.length===0)throw Error("Empty census: synchronization aborted");
+ for(const [index,row] of census.entries()){
+  if(!row||typeof row!=="object"||Array.isArray(row))throw Error("Invalid census row "+(index+1));
+  for(const field of ["PatientID","AdmissionDate","PatientName","Room"]){
+   if(!Object.hasOwn(row,field)||!str(row[field]))throw Error("Missing required census field "+field+" in row "+(index+1));
+  }
+  if(!/^\\d{1,9}$/.test(str(row.PatientID)))throw Error("Invalid PatientID in row "+(index+1));
+  const d=date(row.AdmissionDate);
+  if(!d||!Number.isFinite(Date.parse(d))||new Date(d+"T00:00:00Z").toISOString().slice(0,10)!==d)throw Error("Invalid AdmissionDate in row "+(index+1));
+ }
  const incoming=new Map(),existing=new Map(),changes=[];
  for(const row of census){
   const key=admissionKey(row);
@@ -40,14 +50,12 @@ export function planCensusSync(census,data,{completeCensus=false}={}){
    if(Object.keys(values).length)changes.push({operation:"UPDATE",rowIndex:index,values});
   }
  }
- if(completeCensus){
-  for(const [key,matches] of existing){
+ for(const [key,matches] of existing){
    if(incoming.has(key))continue;
    for(const {row,index} of matches){
     if(str(row.AdmissionStatus)==="מאושפז")changes.push({operation:"UPDATE",rowIndex:index,values:{AdmissionStatus:"שוחרר"}});
    }
   }
- }
  return {changes,summary:{
   inserted:changes.filter(x=>x.operation==="INSERT").length,
   updated:changes.filter(x=>x.operation==="UPDATE").length,
