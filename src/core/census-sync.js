@@ -23,7 +23,7 @@ export function planCensusSync(census,data){
   for(const field of ["PatientID","AdmissionDate","PatientName","Room"]){
    if(!Object.hasOwn(row,field)||!str(row[field]))throw Error("Missing required census field "+field+" in row "+(index+1));
   }
-  if(!/^\\d{1,9}$/.test(str(row.PatientID)))throw Error("Invalid PatientID in row "+(index+1));
+  if(!/^\d{1,9}$/.test(str(row.PatientID)))throw Error("Invalid PatientID in row "+(index+1));
   const d=date(row.AdmissionDate);
   if(!d||!Number.isFinite(Date.parse(d))||new Date(d+"T00:00:00Z").toISOString().slice(0,10)!==d)throw Error("Invalid AdmissionDate in row "+(index+1));
  }
