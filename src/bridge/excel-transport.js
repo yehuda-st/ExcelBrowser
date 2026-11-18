@@ -63,7 +63,7 @@ export class ExcelTransport {
   h.load("values");b.load(["isNullObject","rowCount"]);await ctx.sync();
   const cols=h.values[0].map(String);
   if(!b.isNullObject&&b.rowCount)t.rows.deleteRowsAt(0,b.rowCount);
-  if(rows.length)t.rows.add(null,rows.map(r=>cols.map(c=>r[c]??"")));
+  if(rows.length)t.rows.add(null,rows.map(r=>cols.map(c=>c==="operation"?(r.operation??""):c==="rowIndex"?(r.rowIndex??""):(r.values?.[c]??r[c]??""))));
   await ctx.sync();
  }
 }
