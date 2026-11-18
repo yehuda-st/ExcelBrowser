@@ -1,10 +1,9 @@
-import {createHash} from "node:crypto";
 const clone=x=>structuredClone(x);
 const protectedFields=new Set(["RecordID","DischargeDate","Cancelled","NoticeAt","Recipient","Messenger","Remarks","Signer","SignedAt"]);
 const admissionFields=new Set(["PatientName","Room","AdmissionStatus"]);
 const key=r=>String(r.PatientID).trim().padStart(9,"0")+"|"+String(r.AdmissionDate).trim();
 const canonical=value=>JSON.stringify(value);
-export function prepareWriteBatch(rows,changes){
+export async function prepareWriteBatch(rows,changes){
  if(!Array.isArray(rows)||!Array.isArray(changes))throw Error("Invalid write batch");
  const result=clone(rows),seen=new Set();
  const keys=new Set(rows.map(key));
@@ -24,6 +23,7 @@ export function prepareWriteBatch(rows,changes){
    keys.add(key(r));result.push(clone(r));
   }
  }
- const digest=createHash("sha256").update(canonical({rows,changes})).digest("hex");
+ const bytes=new TextEncoder().encode(canonical({rows,changes}));
+ const digest=Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256",bytes)),b=>b.toString(16).padStart(2,"0")).join("");
  return {batchId:digest,changes:clone(changes),expectedRows:rows.length};
 }
