@@ -1,0 +1,66 @@
+# Run on Windows with desktop Excel installed:
+# powershell -ExecutionPolicy Bypass -File .\integration\setup-fixtures.ps1
+$ErrorActionPreference='Stop'
+$root=Join-Path $env:USERPROFILE 'ExcelBridgeTest'
+$patients=Join-Path $root 'Patients'
+New-Item -ItemType Directory -Force $patients | Out-Null
+$excel=New-Object -ComObject Excel.Application
+$excel.Visible=$false
+$excel.DisplayAlerts=$false
+
+function AddTable($wb,$sheetName,$tableName,$headers,$rows) {
+  $ws=$wb.Worksheets.Add()
+  $ws.Name=$sheetName
+  for($i=0;$i -lt $headers.Count;$i++){ $ws.Cells.Item(1,$i+1).NumberFormat='@';$ws.Cells.Item(1,$i+1).Value2=[string]$headers[$i] }
+  $n=2
+  foreach($row in $rows){
+    for($i=0;$i -lt $headers.Count;$i++){
+      $ws.Cells.Item($n,$i+1).NumberFormat='@'
+      $ws.Cells.Item($n,$i+1).Value2=[string]$row[$i]
+    }
+    $n++
+  }
+  $end=[Math]::Max(2,$n-1)
+  $range=$ws.Range($ws.Cells.Item(1,1),$ws.Cells.Item($end,$headers.Count))
+  $table=$ws.ListObjects.Add(1,$range,$null,1)
+  $table.Name=$tableName
+  if($rows.Count -eq 0){$table.ListRows.Item(1).Delete()}
+  $ws.Columns.AutoFit() | Out-Null
+}
+$ad=@('PatientID','AdmissionDate','PatientName','Room','AdmissionStatus')
+$rec=@('RecordID','PatientID','AdmissionDate','DischargeDate','Cancelled','NoticeAt','Recipient','Messenger','Remarks','Signer','SignedAt')
+$adRows=@(
+ ,@('000000001','2026-11-01','Test Patient One','12','מאושפז')
+ ,@('000000002','2026-11-02','Test Patient Two','14','מאושפז')
+)
+try {
+  $wb=$excel.Workbooks.Add()
+  AddTable $wb 'Patients' 'Patients' $ad $adRows
+  $wb.SaveAs((Join-Path $patients 'Patients_2026-11-18.xlsx'),51)
+  $wb.Close($false)
+
+  $wb=$excel.Workbooks.Add()
+  AddTable $wb 'Admissions' 'Admissions' $ad $adRows
+  AddTable $wb 'DischargeRecords' 'DischargeRecords' $rec @()
+  $wb.SaveAs((Join-Path $root 'DischargeData.xlsx'),51)
+  $wb.Close($false)
+
+  $wb=$excel.Workbooks.Add()
+  $settings=$wb.Worksheets.Item(1);$settings.Name='Settings'
+  $settings.Cells.Item(1,1).Value2='Key';$settings.Cells.Item(1,2).Value2='Value'
+  $settings.Cells.Item(2,1).Value2='PatientsFolder';$settings.Cells.Item(2,2).Value2=$patients
+  $settings.Cells.Item(3,1).Value2='DataFilePath';$settings.Cells.Item(3,2).Value2=(Join-Path $root 'DischargeData.xlsx')
+  AddTable $wb 'Bridge' 'BridgeQueue' @('CommandID','Status','Action','Path','TableName','SheetName','ExpectedModifiedAt','ExpectedRows','BatchID','Result','Error','Trigger') @()
+  AddTable $wb 'BridgeFilesSheet' 'BridgeFiles' @('Kind','Path','ModifiedAt','Size') @()
+  AddTable $wb 'PatientsStaging' 'Staging_Patients' $ad @()
+  AddTable $wb 'AdmissionsStaging' 'Staging_Admissions' $ad @()
+  AddTable $wb 'RecordsStaging' 'Staging_DischargeRecords' $rec @()
+  AddTable $wb 'ChangesStaging' 'Staging_RecordChanges' (@('operation','rowIndex')+$rec) @()
+  $wb.SaveAs((Join-Path $root 'DischargeManager.xlsm'),52)
+  $wb.Close($false)
+  Write-Host "Created sample files under $root"
+  Write-Host 'IMPORTANT: Import vba/BridgeProcessor.bas and paste vba/BridgeWorksheet_Calculate.txt into Bridge sheet VBA module.'
+} finally {
+  $excel.Quit()
+  [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($excel)
+}
