@@ -64,27 +64,33 @@ test("VBA failure updates queue ERROR without changing workbook data",async()=>{
  assert.equal(transport.getFile("/data.xlsx").tables.DischargeRecords.length,0);
 });
 
-test("INIT alone snapshots both external workbooks into interface tables",async()=>{
- const transport=make();
- const pending=transport.enqueue({id:"init-1",action:"INIT",params:{}});
+test("INIT publishes metadata but leaves data staging to READ_FILE",async()=>{
+ const transport=make(),client=new BridgeClient(transport);
  assert.equal(transport.getTable("BridgeFiles"),undefined);
- assert.equal(transport.getTable("Staging_Admissions"),undefined);
- await transport.trigger();
- assert.equal(pending.status,"DONE");
- assert.deepEqual(transport.getTable("BridgeFiles").map(f=>f.kind),["PATIENTS","DATA"]);
+ const init=await client.send("INIT");
+ assert.deepEqual(init.files.map(f=>f.kind),["PATIENTS","DATA"]);
  assert.equal(transport.getTable("BridgeFiles")[1].path,"/data.xlsx");
  assert.equal(transport.getTable("BridgeFiles")[1].modifiedAt,"2026-11-18T00:00:00Z");
+ assert.equal(transport.getTable("Staging_Patients"),undefined);
+ assert.equal(transport.getTable("Staging_Admissions"),undefined);
+ assert.equal(transport.getTable("Staging_DischargeRecords"),undefined);
+ await client.send("READ_FILE",{path:init.files[0].path,sheet:"Staging_Patients"});
+ await client.send("READ_FILE",{path:init.files[1].path,table:"Admissions",sheet:"Staging_Admissions"});
+ await client.send("READ_FILE",{path:init.files[1].path,table:"DischargeRecords",sheet:"Staging_DischargeRecords"});
  assert.deepEqual(transport.getTable("Staging_Patients"),[]);
  assert.equal(transport.getTable("Staging_Admissions")[0].Room,"12");
  assert.deepEqual(transport.getTable("Staging_DischargeRecords"),[]);
 });
 
-test("INIT takes a snapshot; external file changes do not silently change interface tables",async()=>{
+test("READ_FILE refreshes data independently of INIT",async()=>{
  const transport=make(),client=new BridgeClient(transport);
- await client.send("INIT");
+ const init=await client.send("INIT");
+ await client.send("READ_FILE",{path:init.files[1].path,table:"Admissions",sheet:"Staging_Admissions"});
  transport.files.get("/data.xlsx").tables.Admissions[0].Room="20";
  assert.equal(transport.getTable("Staging_Admissions")[0].Room,"12");
  await client.send("INIT");
+ assert.equal(transport.getTable("Staging_Admissions")[0].Room,"12");
+ await client.send("READ_FILE",{path:init.files[1].path,table:"Admissions",sheet:"Staging_Admissions"});
  assert.equal(transport.getTable("Staging_Admissions")[0].Room,"20");
 });
 
@@ -97,4 +103,5 @@ test("multiple pending commands are processed only when Calculate is triggered",
  assert.equal(first.status,"DONE");
  assert.equal(second.status,"DONE");
  assert.equal(transport.getTable("BridgeFiles").length,2);
+ assert.equal(transport.getTable("Staging_Admissions"),undefined);
 });
