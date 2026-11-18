@@ -4,9 +4,15 @@ import {MockVBA} from "../src/bridge/mock-vba.js";
 import {BridgeClient} from "../src/bridge/bridge-client.js";
 const make=()=>new MockVBA([{path:"/data.xlsx",kind:"DATA",modifiedAt:"2026-11-18T00:00:00Z",rows:[{PatientID:"001",Room:"12",AdmissionStatus:"מאושפז"}]}]);
 test("PING and INIT",async()=>{
- const client=new BridgeClient(make());
+ const mock=make(),client=new BridgeClient(mock);
  assert.deepEqual(await client.send("PING"),{pong:true});
- assert.equal((await client.send("INIT")).files.length,1);
+ mock.settings={PatientsFolder:"/patients",DataFilePath:"/data.xlsx"};
+ mock.files.set("/patients/older.xlsx",{path:"/patients/older.xlsx",modifiedAt:"2026-11-01T00:00:00Z",rows:[]});
+ mock.files.set("/patients/newer.xlsx",{path:"/patients/newer.xlsx",modifiedAt:"2026-11-17T00:00:00Z",rows:[]});
+ const result=await client.send("INIT");
+ assert.equal(result.files.length,2);
+ assert.equal(result.files[0].path,"/patients/newer.xlsx");
+ assert.equal(mock.bridgeFiles[1].path,"/data.xlsx");
 });
 test("READ_FILE copies data to staging without modifying file",async()=>{
  const mock=make(),client=new BridgeClient(mock);
@@ -39,4 +45,11 @@ test("retrigger does not execute DONE commands twice",async()=>{
  await client.send("WRITE_ROWS",{path:"/data.xlsx",sheet:"Changes",expectedModifiedAt:"2026-11-18T00:00:00Z"});
  await mock.trigger();
  assert.equal(mock.getFile("/data.xlsx").rows.length,2);
+});
+
+test("INIT fails when settings missing or patient folder empty",async()=>{
+ const mock=make(),client=new BridgeClient(mock);
+ await assert.rejects(client.send("INIT"),/Missing Settings/);
+ mock.settings={PatientsFolder:"/empty",DataFilePath:"/data.xlsx"};
+ await assert.rejects(client.send("INIT"),/No patient files/);
 });
