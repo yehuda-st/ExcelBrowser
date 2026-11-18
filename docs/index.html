@@ -54,7 +54,7 @@ const seedRecords=[
  {id:"r5",admissionId:"a5",dischargeDate:"2026-09-22",decisionAt:"2026-09-18T10:00",noticeAt:"2026-09-18T11:00",recipient:"בת",messenger:"אחות",signer:"ד״ר לוי",remarks:"",createdAt:"2026-09-18T11:02:00"}
 ];
 function createDemoStore(){return {admissions:structuredClone(seedAdmissions),records:structuredClone(seedRecords)}}
-let store=createDemoStore(),selected=null,excelConnected=false,busy=false;
+let store=createDemoStore(),selected=null,excelConnected=false,busy=false,dischargeDataAdapter=null;
 const sessionDefaults={messenger:"",signer:""};
 const $=id=>document.getElementById(id);
 const dateLabel=s=>s?new Date(s.length===10?s+"T12:00:00":s).toLocaleString("he-IL",{day:"2-digit",month:"2-digit",year:"numeric",...(s.length>10?{hour:"2-digit",minute:"2-digit"}:{})}):"—";
@@ -134,8 +134,8 @@ $("addForm").addEventListener("submit",async e=>{
   if(busy)return;
   busy=true;$("add").disabled=true;error.textContent="שולח פקודה ל־VBA...";
   try{
-   await ExcelDischargeBridge.submit(record,a);
-   store=await ExcelDischargeBridge.load();
+   await dischargeDataAdapter.submit(record,a);
+   store=await dischargeDataAdapter.load();
    $("editor").close();render();
   }catch(err){error.textContent="שגיאה: "+(err.message||String(err));}
   finally{busy=false;$("add").disabled=false;}
@@ -144,7 +144,7 @@ $("addForm").addEventListener("submit",async e=>{
 $("closeTop").addEventListener("click",()=>$("editor").close());
 $("cancel").addEventListener("click",()=>$("editor").close());
 $("search").addEventListener("input",render);
-$("reset").addEventListener("click",()=>{if(confirm("לחזור לנתוני הדגמה?")){store=createDemoStore();excelConnected=false;selected=null;$("mode").textContent="נתוני הדגמה · ללא חיבור לקובצי Excel";render()}});
+$("reset").addEventListener("click",()=>{if(confirm("לחזור לנתוני הדגמה?")){store=createDemoStore();excelConnected=false;dischargeDataAdapter=null;selected=null;$("mode").textContent="נתוני הדגמה · ללא חיבור לקובצי Excel";render()}});
 $("connect").addEventListener("click",async()=>{const b=$("connect");b.disabled=true;try{store=await ExcelDischargeBridge.load();excelConnected=true;$("mode").textContent="מחובר לטבלת DischargeRecords בחוברת Excel";render()}catch(err){alert("טעינת Excel נכשלה: "+(err.message||String(err)))}finally{b.disabled=false}});
 render();
 if(typeof Office!=="undefined"&&Office.onReady)Office.onReady(()=>{$("mode").textContent="נתוני הדגמה · לחץ ׳טען מ־Excel׳ להתחברות"});
