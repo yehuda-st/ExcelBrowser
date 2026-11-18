@@ -63,3 +63,38 @@ test("VBA failure updates queue ERROR without changing workbook data",async()=>{
  assert.equal(transport.getTable("BridgeQueue").at(-1).status,"ERROR");
  assert.equal(transport.getFile("/data.xlsx").tables.DischargeRecords.length,0);
 });
+
+test("INIT alone snapshots both external workbooks into interface tables",async()=>{
+ const transport=make();
+ const pending=transport.enqueue({id:"init-1",action:"INIT",params:{}});
+ assert.equal(transport.getTable("BridgeFiles"),undefined);
+ assert.equal(transport.getTable("Staging_Admissions"),undefined);
+ await transport.trigger();
+ assert.equal(pending.status,"DONE");
+ assert.deepEqual(transport.getTable("BridgeFiles").map(f=>f.kind),["PATIENTS","DATA"]);
+ assert.equal(transport.getTable("BridgeFiles")[1].path,"/data.xlsx");
+ assert.equal(transport.getTable("BridgeFiles")[1].modifiedAt,"2026-11-18T00:00:00Z");
+ assert.deepEqual(transport.getTable("Staging_Patients"),[]);
+ assert.equal(transport.getTable("Staging_Admissions")[0].Room,"12");
+ assert.deepEqual(transport.getTable("Staging_DischargeRecords"),[]);
+});
+
+test("INIT takes a snapshot; external file changes do not silently change interface tables",async()=>{
+ const transport=make(),client=new BridgeClient(transport);
+ await client.send("INIT");
+ transport.files.get("/data.xlsx").tables.Admissions[0].Room="20";
+ assert.equal(transport.getTable("Staging_Admissions")[0].Room,"12");
+ await client.send("INIT");
+ assert.equal(transport.getTable("Staging_Admissions")[0].Room,"20");
+});
+
+test("multiple pending commands are processed only when Calculate is triggered",async()=>{
+ const transport=make();
+ const first=transport.enqueue({id:"multi-1",action:"PING",params:{}});
+ const second=transport.enqueue({id:"multi-2",action:"INIT",params:{}});
+ assert.deepEqual(transport.getTable("BridgeQueue").map(x=>x.status),["PENDING","PENDING"]);
+ await transport.trigger();
+ assert.equal(first.status,"DONE");
+ assert.equal(second.status,"DONE");
+ assert.equal(transport.getTable("BridgeFiles").length,2);
+});
