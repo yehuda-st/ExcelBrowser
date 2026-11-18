@@ -1,0 +1,62 @@
+name: CI issue reporter
+on:
+  workflow_run:
+    workflows: ["Node tests"]
+    types: [completed]
+
+permissions:
+  actions: read
+  issues: write
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Report completed run to issue 1
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const run = context.payload.workflow_run;
+            const {owner, repo} = context.repo;
+            const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun, {
+              owner, repo, run_id: run.id, per_page: 100
+            });
+            const lines = [
+              '### ' + (run.conclusion === 'success' ? '✅' : '❌') + ' ' + run.name + ' — ' + run.conclusion,
+              '',
+              '- Run: [' + run.id + ' (attempt ' + run.run_attempt + ')](' + run.html_url + ')',
+              '- Branch: `' + run.head_branch + '`',
+              '- Commit: `' + run.head_sha + '`',
+              '- Event: ' + run.event,
+              '- Started: ' + (run.run_started_at || run.created_at),
+              '- Finished: ' + run.updated_at,
+              '',
+              '#### Jobs and steps'
+            ];
+            for (const job of jobs) {
+              lines.push('- **' + job.name + '**: ' + job.conclusion + ' ([details](' + job.html_url + '))');
+              for (const step of job.steps || []) {
+                lines.push('  - ' + step.name + ': ' + (step.conclusion || step.status));
+              }
+            }
+            const failed = jobs.filter(j => j.conclusion === 'failure');
+            for (const job of failed) {
+              lines.push('', '#### Error log — ' + job.name);
+              try {
+                const response = await github.rest.actions.downloadJobLogsForWorkflowRun({
+                  owner, repo, job_id: job.id
+                });
+                const raw = typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
+                const selected = raw.split('\n').filter(line =>
+                  /error|fail|not ok|assert|exception|npm ERR/i.test(line)
+                );
+                const excerpt = (selected.length ? selected : raw.split('\n').slice(-60))
+                  .slice(-70).join('\n').slice(0, 12000);
+                lines.push('```text', excerpt.replace(/```/g, "'''"), '```');
+              } catch (error) {
+                lines.push('Log unavailable: ' + error.message + '. See job link above.');
+              }
+            }
+            await github.rest.issues.createComment({
+              owner, repo, issue_number: 1, body: lines.join('\n').slice(0, 60000)
+            });
