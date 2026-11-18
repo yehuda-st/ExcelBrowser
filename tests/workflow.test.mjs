@@ -14,20 +14,20 @@ const census=[
  {PatientID:"3",AdmissionDate:"2026-11-03",PatientName:"C",Room:"3"}
 ];
 test("plan updates all admission rows while preserving signed fields",()=>{
- const {changes}=planCensusSync(census,old,{completeCensus:true});
+ const {changes}=planCensusSync(census,old);
  assert.equal(changes.filter(c=>c.operation==="INSERT").length,1);
  assert.equal(changes.filter(c=>c.operation==="UPDATE").length,3);
  assert.deepEqual(changes.filter(c=>c.rowIndex===0)[0].values,{Room:"4"});
  assert.deepEqual(changes.filter(c=>c.rowIndex===2)[0].values,{AdmissionStatus:"שוחרר"});
  assert.ok(changes.every(c=>c.operation!=="UPDATE"||!Object.keys(c.values).includes("Signer")));
 });
-test("partial census does not mark absent admissions discharged",()=>{
+test("missing patients are always discharged",()=>{
  const {changes}=planCensusSync(census,old);
- assert.equal(changes.filter(c=>c.rowIndex===2).length,0);
+ assert.deepEqual(changes.find(c=>c.rowIndex===2).values,{AdmissionStatus:"שוחרר"});
 });
 test("duplicate admission and invalid date fail closed",()=>{
  assert.throws(()=>planCensusSync([...census,census[0]],old),/Duplicate/);
- assert.throws(()=>planCensusSync([{PatientID:"1",AdmissionDate:"bad"}],old),/Missing/);
+ assert.throws(()=>planCensusSync([{PatientID:"1",AdmissionDate:"bad",PatientName:"A",Room:"1"}],old),/Invalid AdmissionDate/);
 });
 test("full workflow stages, previews, writes and preserves history",async()=>{
  const mock=new MockVBA([
@@ -35,7 +35,7 @@ test("full workflow stages, previews, writes and preserves history",async()=>{
   {path:"/data.xlsx",kind:"DATA",modifiedAt:"2026-11-17T00:00:00Z",rows:old}
  ],{PatientsFolder:"/patients",DataFilePath:"/data.xlsx"});
  const client=new BridgeClient(mock);
- const prepared=await prepareCensusSync(client,mock,{completeCensus:true});
+ const prepared=await prepareCensusSync(client,mock);
  assert.equal(prepared.plan.changes.length,4);
  assert.deepEqual(mock.getFile("/data.xlsx").rows,old);
  assert.equal((await applyCensusSync(client,prepared)).written,4);
@@ -56,4 +56,23 @@ test("workflow detects data file changes before write",async()=>{
  mock.files.get("/data.xlsx").modifiedAt="2026-11-18T01:00:00Z";
  await assert.rejects(applyCensusSync(client,prepared),/changed/);
  assert.deepEqual(mock.getFile("/data.xlsx").rows,old);
+});
+
+test("empty and malformed census fail closed",()=>{
+ assert.throws(()=>planCensusSync([],old),/Empty census/);
+ for(const field of ["PatientID","AdmissionDate","PatientName","Room"]){
+  const invalid={...census[0]};delete invalid[field];
+  assert.throws(()=>planCensusSync([invalid],old),/Missing required census field/);
+ }
+ assert.throws(()=>planCensusSync([{...census[0],PatientID:"abc"}],old),/Invalid PatientID/);
+ assert.throws(()=>planCensusSync([{...census[0],AdmissionDate:"2026-02-30"}],old),/Invalid AdmissionDate/);
+});
+test("empty census cannot trigger a write",async()=>{
+ const mock=new MockVBA([
+  {path:"/patients/empty.xlsx",modifiedAt:"2026-11-18T00:00:00Z",rows:[]},
+  {path:"/data.xlsx",modifiedAt:"2026-11-17T00:00:00Z",rows:old}
+ ],{PatientsFolder:"/patients",DataFilePath:"/data.xlsx"});
+ await assert.rejects(prepareCensusSync(new BridgeClient(mock),mock),/Empty census/);
+ assert.deepEqual(mock.getFile("/data.xlsx").rows,old);
+ assert.equal(mock.queue.some(j=>j.action==="WRITE_ROWS"),false);
 });
