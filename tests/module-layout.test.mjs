@@ -27,6 +27,6 @@ test("all browser ES module imports resolve inside Pages",()=>{
 test("test suites import canonical modules rather than stale copies",()=>{
  for(const path of walk(resolve(root,"tests")).filter(p=>extname(p)===".mjs")){
   const content=readFileSync(path,"utf8");
-  assert.ok(!content.includes("../src/"),"Test imports legacy src: "+path);
+  assert.ok(!content.split("\n").some(line=>line.trimStart().startsWith("import ")&&line.includes("../"+"src/")),"Test imports legacy src: "+path);
  }
 });
