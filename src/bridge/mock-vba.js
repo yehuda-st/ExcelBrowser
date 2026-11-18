@@ -38,7 +38,7 @@ export class MockVBA {
     if(!candidates.length)throw Error("No patient files in folder: "+PatientsFolder);
     const data=this.files.get(DataFilePath);
     if(!data)throw Error("Data file not found: "+DataFilePath);
-    const describe=(kind,f)=>({kind,path:f.path,modifiedAt:f.modifiedAt,size:f.size??0});
+    const describe=(kind,f)=>({kind,path:f.path,modifiedAt:f.modifiedAt,size:f.size??0,tables:f.tables?Object.keys(f.tables):[]});
     this.bridgeFiles=[describe("PATIENTS",candidates[0]),describe("DATA",data)];
     return {files:clone(this.bridgeFiles)};
    }
