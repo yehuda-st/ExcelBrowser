@@ -42,14 +42,19 @@ export class MockVBA {
     this.bridgeFiles=[describe("PATIENTS",candidates[0]),describe("DATA",data)];
     // INIT populates the interface workbook's file registry and staging tables.
     // All mutations happen only when the queued INIT is processed by trigger().
-    this.staging.set("BridgeFiles",clone(this.bridgeFiles));
     const patients=candidates[0].rows??candidates[0].tables?.Patients;
     if(!Array.isArray(patients))throw Error("Patient census rows not found");
-    this.staging.set("Staging_Patients",clone(patients));
-    if(!Array.isArray(data.tables?.Admissions)||!Array.isArray(data.tables?.DischargeRecords))
+    if(data.tables&&(!Array.isArray(data.tables.Admissions)||!Array.isArray(data.tables.DischargeRecords)))
      throw Error("Data workbook must contain Admissions and DischargeRecords");
-    this.staging.set("Staging_Admissions",clone(data.tables.Admissions));
-    this.staging.set("Staging_DischargeRecords",clone(data.tables.DischargeRecords));
+    // Commit the interface workbook snapshot after all inputs are validated.
+    this.staging.set("BridgeFiles",clone(this.bridgeFiles));
+    this.staging.set("Staging_Patients",clone(patients));
+    if(data.tables){
+     this.staging.set("Staging_Admissions",clone(data.tables.Admissions));
+     this.staging.set("Staging_DischargeRecords",clone(data.tables.DischargeRecords));
+    }else if(Array.isArray(data.rows)){
+     this.staging.set("Staging_Data",clone(data.rows)); // legacy fixtures
+    }
     return {files:clone(this.bridgeFiles)};
    }
    case "READ_FILE":{
