@@ -33,7 +33,7 @@ export class MockVBA {
     const {PatientsFolder,DataFilePath}=this.settings;
     if(!PatientsFolder||!DataFilePath)throw Error("Missing Settings: PatientsFolder or DataFilePath");
     const folder=PatientsFolder.replace(/[\\/]+$/,"");
-    const candidates=[...this.files.values()].filter(f=>f.path.replace(/\\/g,"/").startsWith(folder.replace(/\\/g,"/")+"/")&&/\\.xlsx?m?$/i.test(f.path));
+    const candidates=[...this.files.values()].filter(f=>f.path.replace(/\\/g,"/").startsWith(folder.replace(/\\/g,"/")+"/")&&/\.xlsx?m?$/i.test(f.path));
     candidates.sort((a,b)=>String(b.modifiedAt).localeCompare(String(a.modifiedAt))||a.path.localeCompare(b.path));
     if(!candidates.length)throw Error("No patient files in folder: "+PatientsFolder);
     const data=this.files.get(DataFilePath);
