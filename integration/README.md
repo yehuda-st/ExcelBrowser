@@ -23,11 +23,11 @@ This is a **desktop Excel for Windows** prototype. It exercises the actual
 ## Make the actual Office.js UI available
 
 The `docs/index.html` page must be loaded **inside Excel as an Office
-task pane**, not opened as a normal browser page. It imports files from
-`../src`; host the **repository root** over HTTPS with the same origin
-(e.g. a local HTTPS development server) so both `/docs` and `/src` are
-reachable. GitHub Pages publishing only the `docs` directory is
-insufficient.
+task pane**, not opened as a normal browser page. All browser modules are published inside `docs/src`. You can host
+**only the `docs` directory** on GitHub Pages over HTTPS; no local web
+server or root-level `/src` access is needed. When changing source files,
+run `npm run sync:pages` and commit the updated `docs/src` copies.
+`npm test` checks that the published copies match the source.
 
 Use an Office add-in manifest pointing its task pane source to
 `https://YOUR-HOST/docs/index.html`, sideload the manifest in Excel,
