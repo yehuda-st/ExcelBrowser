@@ -30,8 +30,10 @@ function AddTable($wb,$sheetName,$tableName,$headers,$rows) {
 $ad=@('PatientID','AdmissionDate','PatientName','Room','AdmissionStatus')
 $rec=@('RecordID','PatientID','AdmissionDate','DischargeDate','Cancelled','NoticeAt','Recipient','Messenger','Remarks','Signer','SignedAt')
 $adRows=New-Object System.Collections.ArrayList
-[void]$adRows.Add(@('000000001','2026-11-01','Test Patient One','12','מאושפז'))
-[void]$adRows.Add(@('000000002','2026-11-02','Test Patient Two','14','מאושפז'))
+# Build Hebrew status from Unicode code points: Windows PowerShell 5.1 may misread UTF-8 scripts without BOM.
+$admitted=-join ([char[]]@(0x05DE,0x05D0,0x05D5,0x05E9,0x05E4,0x05D6))
+[void]$adRows.Add(@('000000001','2026-11-01','Test Patient One','12',$admitted))
+[void]$adRows.Add(@('000000002','2026-11-02','Test Patient Two','14',$admitted))
 
 try {
   $wb=$excel.Workbooks.Add()
