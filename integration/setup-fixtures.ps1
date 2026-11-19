@@ -24,6 +24,10 @@ function AddTable($wb,$sheetName,$tableName,$headers,$rows) {
   $range=$ws.Range($ws.Cells.Item(1,1),$ws.Cells.Item($end,$headers.Count))
   $table=$ws.ListObjects.Add(1,$range,$null,1)
   $table.Name=$tableName
+  if($tableName -eq 'BridgeQueue') {
+    # Trigger must be General so Office.js can write a real Excel formula.
+    $table.ListColumns.Item('Trigger').Range.NumberFormat='General'
+  }
   if($rows.Count -eq 0){$table.ListRows.Item(1).Delete()}
   $ws.Columns.AutoFit() | Out-Null
 }

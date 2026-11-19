@@ -47,7 +47,7 @@ export class ExcelTransport {
     mark("queue: append complete",{rowIndex:job.rowIndex});
     const last=table.getDataBodyRange().getLastRow();
     mark("queue: set trigger");
-    last.getCell(0,columns.indexOf("Trigger")).values=[[job.id]];
+    last.getCell(0,columns.indexOf("Trigger")).formulas=[["=[@CommandID]"]];
     await ctx.sync();
     mark("queue: trigger complete");
    });
