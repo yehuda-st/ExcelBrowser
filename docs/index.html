@@ -15,9 +15,9 @@ input[type="text"],textarea{direction:rtl;text-align:right}#dischargeDate,#notic
 <header><button id="autoOpenCorner" type="button" title="הפעל פתיחה אוטומטית" aria-label="הפעל פתיחה אוטומטית"></button><h1>מעקב תאריכי שחרור והודעות למשפחות</h1><small id="mode">לחץ ׳פתח קבצים׳ להתחברות</small></header>
 <main class="wrap">
  <div class="toolbar"><input id="search" type="search" placeholder="חיפוש לפי שם, חדר או תעודת זהות" aria-label="חיפוש מטופל"><span class="pill" id="count"></span><button class="btn secondary" id="connect">פתח קבצים</button><button class="btn secondary" id="diagnostics" type="button">העתק אבחון</button></div>
- <div class="views"><button class="btn secondary" id="tableView" aria-pressed="true" type="button">טבלת מטופלים</button><button class="btn secondary" id="daysView" aria-pressed="false" type="button">שחרורים לפי יום</button><select class="sort-select" id="sortOrder" aria-label="סדר מיון"><option value="room">חדר + שם משפחה (א–ב)</option><option value="discharge">תאריך שחרור (מוקדם למאוחר) + שם משפחה</option></select></div>
+ <div class="views"><button class="btn secondary" id="tableView" aria-pressed="true" type="button">טבלת מטופלים</button><button class="btn secondary" id="daysView" aria-pressed="false" type="button">שחרורים לפי יום</button><select class="sort-select" id="sortOrder" aria-label="סדר מיון"><option value="room">חדר + שם משפחה (א–ב)</option><option value="name">שם משפחה (א–ב)</option><option value="discharge">תאריך שחרור (מוקדם למאוחר) + שם משפחה</option></select></div>
  <div class="panel" id="tablePanel"><table><thead><tr><th>חדר</th><th>מטופל</th><th>תעודת זהות</th><th>תאריך קבלה</th><th>תאריך שחרור מתוכנן</th><th>נמסר ל</th><th>הערה</th><th>תיעוד אחרון</th></tr></thead><tbody id="patients"></tbody></table><div id="empty" class="empty" hidden>אין מטופלים להצגה</div></div>
- <div id="daysPanel" hidden><div class="daily-layout"><aside class="panel daily-sidebar"><h3>מטופלים לפי חדר</h3><div id="dailyPatients"></div></aside><section class="panel daily-schedule"><table class="schedule-table"><thead><tr><th class="weekday">יום</th><th class="date">תאריך</th><th>מטופלים</th><th class="remarks">הערה</th></tr></thead><tbody id="dailyRows"></tbody></table></section></div></div>
+ <div id="daysPanel" hidden><div class="daily-layout"><aside class="panel daily-sidebar"><h3>מטופלים לפי חדר</h3><div id="dailyPatients"></div></aside><section class="panel daily-schedule"><table class="schedule-table"><thead><tr><th class="weekday">יום</th><th class="date">תאריך</th><th>מטופלים</th></tr></thead><tbody id="dailyRows"></tbody></table></section></div></div>
  <p class="hint">לחיצה על שורה או על שם מטופל פותחת את התיעוד.</p>
 </main>
 <dialog id="editor" aria-labelledby="modalTitle">
@@ -80,7 +80,7 @@ function el(tag,text,cls){const node=document.createElement(tag);node.textConten
 const surname=name=>String(name||"").trim().split(/\s+/).slice(-1)[0]||"";
 const compareHebrew=(a,b)=>String(a||"").localeCompare(String(b||""),"he");
 const dischargeOf=a=>{const r=latestFor(a);return r&&!r.cancelled?r.dischargeDate||"":""};
-function sortAdmissions(items){const byName=(a,b)=>compareHebrew(surname(a.name),surname(b.name))||compareHebrew(a.name,b.name);return items.sort((a,b)=>{if($("sortOrder").value==="discharge")return compareHebrew(dischargeOf(a)||"9999",dischargeOf(b)||"9999")||byName(a,b);const x=String(a.room||"").match(/\d+/),y=String(b.room||"").match(/\d+/);return (x?Number(x[0]):Infinity)-(y?Number(y[0]):Infinity)||compareHebrew(a.room,b.room)||byName(a,b)})}
+function sortAdmissions(items){const byName=(a,b)=>compareHebrew(surname(a.name),surname(b.name))||compareHebrew(a.name,b.name);return items.sort((a,b)=>{if($("sortOrder").value==="name")return byName(a,b);if($("sortOrder").value==="discharge")return compareHebrew(dischargeOf(a)||"9999",dischargeOf(b)||"9999")||byName(a,b);const x=String(a.room||"").match(/\d+/),y=String(b.room||"").match(/\d+/);return (x?Number(x[0]):Infinity)-(y?Number(y[0]):Infinity)||compareHebrew(a.room,b.room)||byName(a,b)})}
 // Israel public Jewish holidays and selected holiday eves; local calendar dates (not sunset times).
 // Maintain these dates annually using official Israeli holiday calendars.
 const israelHolidays={
@@ -91,7 +91,7 @@ const israelHolidays={
 function renderDays(active){
  const sidebar=$("dailyPatients"),body=$("dailyRows");sidebar.replaceChildren();body.replaceChildren();
  // All active admissions remain accessible, including those without a discharge date.
- const byRoom=sortAdmissions([...active].sort((a,b)=>{const x=String(a.room||"").match(/\\d+/),y=String(b.room||"").match(/\\d+/);return (x?Number(x[0]):Infinity)-(y?Number(y[0]):Infinity)||compareHebrew(a.room,b.room)||compareHebrew(surname(a.name),surname(b.name))}));
+ const byRoom=[...active].sort((a,b)=>{const x=String(a.room||"").match(/\d+/),y=String(b.room||"").match(/\d+/);return (x?Number(x[0]):Infinity)-(y?Number(y[0]):Infinity)||compareHebrew(a.room,b.room)||compareHebrew(surname(a.name),surname(b.name))});
  for(const a of byRoom){const btn=document.createElement("button");btn.className="daily-patient";btn.type="button";btn.append(el("span",a.room||"—","room"),el("span",a.name));btn.addEventListener("click",()=>openEditor(a.id));sidebar.append(btn)}
  const today=new Date();today.setHours(12,0,0,0);
  const scheduled=active.map(dischargeOf).filter(Boolean).sort();
@@ -106,10 +106,10 @@ function renderDays(active){
  for(const date=new Date(from);date<=until;date.setDate(date.getDate()+1)){
   const key=iso(date),tr=document.createElement("tr");if(key===iso(today))tr.className="today";const holiday=israelHolidays[key];if(holiday&&holiday[1]!=="observance")tr.classList.add(holiday[1]);
   tr.append(el("td",weekdays[date.getDay()],"weekday"),el("td",String(date.getDate()).padStart(2,"0")+"/"+String(date.getMonth()+1).padStart(2,"0"),"date"));
-  const names=document.createElement("td");names.className="day-names";if(holiday)names.append(el("span",holiday[0],"holiday-label"));const remarks=document.createElement("td");remarks.className="remarks";
+  const names=document.createElement("td");names.className="day-names";if(holiday)names.append(el("span",holiday[0],"holiday-label"));
   const patients=[...(groups.get(key)||[])].sort((a,b)=>compareHebrew(surname(a.name),surname(b.name))||compareHebrew(a.name,b.name));
-  for(const a of patients){const btn=document.createElement("button");btn.type="button";btn.className="day-name";btn.textContent=a.name;btn.addEventListener("click",()=>openEditor(a.id));names.append(btn,document.createElement("div"));const note=latestFor(a)?.remarks;if(note){const line=document.createElement("div");line.textContent=a.name+": "+note;remarks.append(line)}}
-  tr.append(names,remarks);body.append(tr);
+  for(const a of patients){const btn=document.createElement("button");btn.type="button";btn.className="day-name";btn.textContent=a.name;btn.addEventListener("click",()=>openEditor(a.id));names.append(btn,document.createElement("div"));}
+  tr.append(names);body.append(tr);
  }
 }
 
