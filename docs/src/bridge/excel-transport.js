@@ -98,9 +98,26 @@ export class ExcelTransport {
   mark("staging: read headers/count");
   h.load("values");t.rows.load("count");await ctx.sync();
   const cols=h.values[0].map(String);
-  if(t.rows.count>0){mark("staging: delete existing rows",{existingRows:t.rows.count});t.rows.deleteRowsAt(0,t.rows.count);}
-  if(rows.length){mark("staging: add rows",{rowCount:rows.length});t.rows.add(null,rows.map(r=>cols.map(c=>c==="operation"?(r.operation??""):c==="rowIndex"?(r.rowIndex??""):(r.values?.[c]??r[c]??""))));}
-  mark("staging: sync changes");
-  await ctx.sync();
+  const values=rows.map(r=>cols.map(c=>c==="operation"?(r.operation??""):c==="rowIndex"?(r.rowIndex??""):(r.values?.[c]??r[c]??"")));
+  const existing=t.rows.count,overlap=Math.min(existing,values.length);
+  // Excel 2019 rejects deleteRowsAt on some tables (InvalidArgument 0x80070057).
+  // Reuse existing table rows; avoid structural edits on the common one-row write.
+  if(overlap){
+   mark("staging: update existing rows",{rowCount:overlap});
+   t.getDataBodyRange().getCell(0,0).getResizedRange(overlap-1,cols.length-1).values=values.slice(0,overlap);
+   await ctx.sync();
+  }
+  if(values.length>existing){
+   mark("staging: append rows",{rowCount:values.length-existing});
+   t.rows.add(null,values.slice(existing));
+   await ctx.sync();
+  }
+  if(existing>values.length){
+   // Remove surplus rows from the end only; never leave blank operations for VBA.
+   mark("staging: remove surplus rows",{rowCount:existing-values.length});
+   for(let i=existing-1;i>=values.length;i--)t.rows.getItemAt(i).delete();
+   await ctx.sync();
+  }
+  mark("staging: sync complete");
  }
 }
