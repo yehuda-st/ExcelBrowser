@@ -10,8 +10,8 @@ export function createDischargeDataAdapter(transport){
  const client=new BridgeClient(transport);
  let loaded=null;
  return {
-  async load(){
-   loaded=await loadDischargeStore(client,transport);
+  async load(onProgress){
+   loaded=await loadDischargeStore(client,transport,onProgress);
    return loaded.store;
   },
   async submit(record,admission){
