@@ -1,4 +1,4 @@
-# Run on Windows with desktop Excel installed:
+﻿# Run on Windows with desktop Excel installed:
 # powershell -ExecutionPolicy Bypass -File .\integration\setup-fixtures.ps1
 $ErrorActionPreference='Stop'
 $root=Join-Path $env:USERPROFILE 'ExcelBridgeTest'
