@@ -60,10 +60,10 @@ const $=id=>document.getElementById(id);
 const dateLabel=s=>s?new Date(s.length===10?s+"T12:00:00":s).toLocaleString("he-IL",{day:"2-digit",month:"2-digit",year:"numeric",...(s.length>10?{hour:"2-digit",minute:"2-digit"}:{})}):"—";
 const dischargeLabel=s=>{if(!s)return "בוטל / לא נקבע";const [y,m,d]=s.split("-").map(Number);const weekday=["א","ב","ג","ד","ה","ו","ש"][new Date(y,m-1,d).getDay()];return String(d).padStart(2,"0")+"/"+String(m).padStart(2,"0")+" "+weekday+"׳"};
 const nowLocal=()=>{const d=new Date();const z=n=>String(n).padStart(2,"0");return d.getFullYear()+"-"+z(d.getMonth()+1)+"-"+z(d.getDate())+"T"+z(d.getHours())+":"+z(d.getMinutes())};
-const displayDate=s=>{if(!s)return "";const m=String(s).match(/^(\\d{4})-(\\d{2})-(\\d{2})(?:T(\\d{2}):(\\d{2}))?/);return m?m[3]+"/"+m[2]+"/"+m[1]+(m[4]?" "+m[4]+":"+m[5]:""):"";};
+const displayDate=s=>{if(!s)return "";const m=String(s).match(/^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2}))?/);return m?m[3]+"/"+m[2]+"/"+m[1]+(m[4]?" "+m[4]+":"+m[5]:""):"";};
 const parseDateInput=(value,withTime=false)=>{
  const s=String(value||"").trim();if(!s)return "";
- const m=s.match(withTime?/^(\\d{2})\\/(\\d{2})\\/(\\d{4})\\s+(\\d{2}):(\\d{2})$/:/^(\\d{2})\\/(\\d{2})\\/(\\d{4})$/);
+ const m=s.match(withTime?/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})$/:/^(\d{2})\/(\d{2})\/(\d{4})$/);
  if(!m)throw Error(withTime?"יש להזין מועד בפורמט dd/mm/yyyy HH:mm":"יש להזין תאריך בפורמט dd/mm/yyyy");
  const [,dd,mm,yyyy,hh="00",min="00"]=m;
  const d=new Date(Number(yyyy),Number(mm)-1,Number(dd));
