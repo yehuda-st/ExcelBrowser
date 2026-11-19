@@ -30,10 +30,12 @@ export class ExcelTransport {
    const deadline=Date.now()+this.timeoutMs;
    while(Date.now()<deadline){
     const row=await Excel.run(async ctx=>{
-     const t=ctx.workbook.tables.getItem("BridgeQueue"),h=t.getHeaderRowRange(),b=t.getDataBodyRangeOrNullObject();
-     h.load("values");b.load(["values","isNullObject"]);await ctx.sync();
+     const t=ctx.workbook.tables.getItem("BridgeQueue"),h=t.getHeaderRowRange();
+     h.load("values");t.rows.load("count");await ctx.sync();
      const cols=h.values[0].map(String);
-     return (b.isNullObject?[]:b.values).map(v=>Object.fromEntries(cols.map((k,i)=>[k,v[i]]))).find(r=>String(r.CommandID)===job.id);
+     if(t.rows.count===0)return undefined;
+     const b=t.getDataBodyRange();b.load("values");await ctx.sync();
+     return b.values.map(v=>Object.fromEntries(cols.map((k,i)=>[k,v[i]]))).find(r=>String(r.CommandID)===job.id);
     });
     if(row?.Status==="DONE"){
      job.status="DONE";
@@ -52,17 +54,19 @@ export class ExcelTransport {
  }
  async readStaging(sheet){
   return Excel.run(async ctx=>{
-   const t=ctx.workbook.tables.getItem(sheet),h=t.getHeaderRowRange(),b=t.getDataBodyRangeOrNullObject();
-   h.load("values");b.load(["values","isNullObject"]);await ctx.sync();
+   const t=ctx.workbook.tables.getItem(sheet),h=t.getHeaderRowRange();
+   h.load("values");t.rows.load("count");await ctx.sync();
    const cols=h.values[0].map(String);
-   return (b.isNullObject?[]:b.values).map(v=>Object.fromEntries(cols.map((k,i)=>[k,v[i]])));
+   if(t.rows.count===0)return [];
+   const b=t.getDataBodyRange();b.load("values");await ctx.sync();
+   return b.values.map(v=>Object.fromEntries(cols.map((k,i)=>[k,v[i]])));
   });
  }
  async writeStaging(ctx,sheet,rows){
-  const t=ctx.workbook.tables.getItem(sheet),h=t.getHeaderRowRange(),b=t.getDataBodyRangeOrNullObject();
-  h.load("values");b.load(["isNullObject","rowCount"]);await ctx.sync();
+  const t=ctx.workbook.tables.getItem(sheet),h=t.getHeaderRowRange();
+  h.load("values");t.rows.load("count");await ctx.sync();
   const cols=h.values[0].map(String);
-  if(!b.isNullObject&&b.rowCount)t.rows.deleteRowsAt(0,b.rowCount);
+  if(t.rows.count>0)t.rows.deleteRowsAt(0,t.rows.count);
   if(rows.length)t.rows.add(null,rows.map(r=>cols.map(c=>c==="operation"?(r.operation??""):c==="rowIndex"?(r.rowIndex??""):(r.values?.[c]??r[c]??""))));
   await ctx.sync();
  }
