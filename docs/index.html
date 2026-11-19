@@ -145,7 +145,7 @@ $("closeTop").addEventListener("click",()=>$("editor").close());
 $("cancel").addEventListener("click",()=>$("editor").close());
 $("search").addEventListener("input",render);
 $("reset").addEventListener("click",()=>{if(confirm("לחזור לנתוני הדגמה?")){store=createDemoStore();excelConnected=false;dischargeDataAdapter=null;selected=null;$("mode").textContent="נתוני הדגמה · ללא חיבור לקובצי Excel";render()}});
-$("connect").addEventListener("click",async()=>{const b=$("connect");b.disabled=true;try{const {ExcelTransport}=await import("./src/bridge/excel-transport.js");const {createDischargeDataAdapter}=await import("./discharge-data-adapter.js");dischargeDataAdapter=createDischargeDataAdapter(new ExcelTransport());store=await dischargeDataAdapter.load();excelConnected=true;$("mode").textContent="מחובר דרך VBA";render()}catch(err){alert("טעינת Excel נכשלה: "+(err.message||String(err)))}finally{b.disabled=false}});
+$("connect").addEventListener("click",async()=>{const b=$("connect");b.disabled=true;try{const {ExcelTransport}=await import("./src/bridge/excel-transport.js");const {createDischargeDataAdapter}=await import("./discharge-data-adapter.js");dischargeDataAdapter=createDischargeDataAdapter(new ExcelTransport());store=await dischargeDataAdapter.load(step=>{$("mode").textContent="טוען מ־Excel: "+step});excelConnected=true;$("mode").textContent="מחובר דרך VBA";render()}catch(err){const message=err?.stack||err?.message||String(err);$("mode").textContent="שגיאה בטעינת Excel: "+message;console.error("Excel loading failed",err);alert("טעינת Excel נכשלה: "+message)}finally{b.disabled=false}});
 render();
 if(typeof Office!=="undefined"&&Office.onReady)Office.onReady(()=>{$("mode").textContent="נתוני הדגמה · לחץ ׳טען מ־Excel׳ להתחברות"});
 </script>
