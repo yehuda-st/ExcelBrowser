@@ -17,8 +17,9 @@ export function createDischargeDataAdapter(transport){
   async submit(record,admission){
    if(!loaded)throw Error("Load data before submitting");
    const result=await appendDischargeRecord(client,transport,loaded,record,admission);
-   // Always reload after the write: UI must show persisted rows, not optimistic data.
-   loaded=await loadDischargeStore(client,transport);
+   loaded.records.push({RecordID:record.id,PatientID:admission.patientId,AdmissionDate:admission.admissionDate,DischargeDate:record.dischargeDate,Cancelled:record.cancelled,NoticeAt:record.noticeAt,Recipient:record.recipient,Messenger:record.messenger,Remarks:record.remarks,Signer:record.signer,SignedAt:record.createdAt});
+   loaded.store.records.push(structuredClone(record));
+   loaded.source.modifiedAt=result.modifiedAt;
    return {result,store:loaded.store};
   }
  };

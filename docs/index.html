@@ -134,8 +134,8 @@ $("addForm").addEventListener("submit",async e=>{
   if(busy)return;
   busy=true;$("add").disabled=true;error.textContent="שולח פקודה ל־VBA...";
   try{
-   await dischargeDataAdapter.submit(record,a);
-   store=await dischargeDataAdapter.load();
+   const saved=await dischargeDataAdapter.submit(record,a);
+   store=saved.store;
    $("editor").close();render();
   }catch(err){error.textContent="שגיאה: "+(err.message||String(err));}
   finally{busy=false;$("add").disabled=false;}
@@ -145,7 +145,7 @@ $("closeTop").addEventListener("click",()=>$("editor").close());
 $("cancel").addEventListener("click",()=>$("editor").close());
 $("search").addEventListener("input",render);
 $("reset").addEventListener("click",()=>{if(confirm("לחזור לנתוני הדגמה?")){store=createDemoStore();excelConnected=false;dischargeDataAdapter=null;selected=null;$("mode").textContent="נתוני הדגמה · ללא חיבור לקובצי Excel";render()}});
-$("connect").addEventListener("click",async()=>{const b=$("connect");b.disabled=true;try{const {ExcelTransport}=await import("./src/bridge/excel-transport.js?v=9fa223e3");const {createDischargeDataAdapter}=await import("./discharge-data-adapter.js");dischargeDataAdapter=createDischargeDataAdapter(new ExcelTransport());store=await dischargeDataAdapter.load(step=>{$("mode").textContent="טוען מ־Excel: "+step});excelConnected=true;$("mode").textContent="מחובר דרך VBA";render()}catch(err){const message=err?.stack||err?.message||String(err);$("mode").textContent="שגיאה בטעינת Excel: "+message;console.error("Excel loading failed",err);alert("טעינת Excel נכשלה: "+message)}finally{b.disabled=false}});
+$("connect").addEventListener("click",async()=>{const b=$("connect");b.disabled=true;try{const {ExcelTransport}=await import("./src/bridge/excel-transport.js?v=save-2");const {createDischargeDataAdapter}=await import("./discharge-data-adapter.js?v=save-2");dischargeDataAdapter=createDischargeDataAdapter(new ExcelTransport());store=await dischargeDataAdapter.load(step=>{$("mode").textContent="טוען מ־Excel: "+step});excelConnected=true;$("mode").textContent="מחובר דרך VBA";render()}catch(err){const message=err?.stack||err?.message||String(err);$("mode").textContent="שגיאה בטעינת Excel: "+message;console.error("Excel loading failed",err);alert("טעינת Excel נכשלה: "+message)}finally{b.disabled=false}});
 render();
 if(typeof Office!=="undefined"&&Office.onReady)Office.onReady(()=>{$("mode").textContent="נתוני הדגמה · לחץ ׳טען מ־Excel׳ להתחברות"});
 </script>

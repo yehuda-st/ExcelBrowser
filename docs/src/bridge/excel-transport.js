@@ -20,6 +20,8 @@ export class ExcelTransport {
     const header=table.getHeaderRowRange();header.load("values");await ctx.sync();
     const columns=header.values[0].map(String);
     const values={CommandID:job.id,Status:"PENDING",Action:job.action,Path:job.params.path??"",TableName:job.params.table??"",SheetName:job.params.sheet??"",ExpectedModifiedAt:job.params.expectedModifiedAt??"",ExpectedRows:job.params.expectedRows??"",BatchID:job.params.batchId??"",Result:"",Error:"",Trigger:""};
+    table.rows.load("count");await ctx.sync();
+    job.rowIndex=table.rows.count;
     table.rows.add(null,[columns.map(h=>values[h]??"")]);
     await ctx.sync();
     const last=table.getDataBodyRange().getLastRow();
@@ -30,12 +32,15 @@ export class ExcelTransport {
    const deadline=Date.now()+this.timeoutMs;
    while(Date.now()<deadline){
     const row=await Excel.run(async ctx=>{
-     const t=ctx.workbook.tables.getItem("BridgeQueue"),h=t.getHeaderRowRange();
-     h.load("values");t.rows.load("count");await ctx.sync();
+     const t=ctx.workbook.tables.getItem("BridgeQueue");
+     t.rows.load("count");await ctx.sync();
+     if(t.rows.count<=job.rowIndex)throw Error("BridgeQueue command row removed");
+     const h=t.getHeaderRowRange(),r=t.getDataBodyRange().getRow(job.rowIndex);
+     h.load("values");r.load("values");await ctx.sync();
      const cols=h.values[0].map(String);
-     if(t.rows.count===0)return undefined;
-     const b=t.getDataBodyRange();b.load("values");await ctx.sync();
-     return b.values.map(v=>Object.fromEntries(cols.map((k,i)=>[k,v[i]]))).find(r=>String(r.CommandID)===job.id);
+     const found=Object.fromEntries(cols.map((k,i)=>[k,r.values[0][i]]));
+     if(String(found.CommandID)!==job.id)throw Error("BridgeQueue command row moved");
+     return found;
     });
     if(row?.Status==="DONE"){
      job.status="DONE";
@@ -49,7 +54,7 @@ export class ExcelTransport {
     await sleep(350);
    }
    if(job.status==="PENDING"){job.status="ERROR";job.error="Timed out waiting for VBA; inspect BridgeQueue";}
-  }catch(e){job.status="ERROR";job.error=String(e.message||e);}
+  }catch(e){job.status="ERROR";job.error=job.action+": "+String(e.message||e);}
   finally{this.pending=null;}
  }
  async readStaging(sheet){
