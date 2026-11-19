@@ -35,14 +35,31 @@ $admitted=-join ([char[]]@(0x05DE,0x05D0,0x05D5,0x05E9,0x05E4,0x05D6))
 [void]$adRows.Add(@('000000001','2026-11-01','Test Patient One','12',$admitted))
 [void]$adRows.Add(@('000000002','2026-11-02','Test Patient Two','14',$admitted))
 
+# Use the same 28 columns and ordering as the Prometheus export.
+$patientHeaders=@('שם','סוג חולה','רגישויות','בידוד','חיידק עמיד','מעקב','מ.קליני','ד.סעודי','תרופות','תרופה בהשהייה','הוראות','תוכניות','סימנים','אירועים למעקב','אנטיביוטיקה','הזמנות','חדר/מיטה','יעוצים','מעבדות','מכונים','טפסים','אבחנות','ימים','מצב המטופל','שיחות מטופל/משפחה','רצף טיפולי','ממצא חריג','הדפס')
+function NewPrometheusRow($name,$patientId,$gender,$age,$bed,$days) {
+  $row=New-Object 'string[]' $patientHeaders.Count
+  $row[0]="$name        $patientId-P $gender,$age"
+  $row[2]='C';$row[4]='N';$row[6]='O';$row[7]='C';$row[8]='C'
+  $row[9]='C';$row[10]='N';$row[11]='O';$row[14]='אין אנטיביוטיקה'
+  $row[15]='C';$row[16]=[string]$bed;$row[17]='O';$row[18]='C'
+  $row[19]='C';$row[20]='Y';$row[21]='Y';$row[22]=[string]$days
+  $row[24]='יש לבצע שיחה';$row[25]='E';$row[26]='לא קיים ממצא חריג/שינוי משמעותי'
+  return ,$row
+}
+$patientRows=@(
+  (NewPrometheusRow 'מטופל 5EB18D19' '97790615' 'נ' 95 '1' 13),
+  (NewPrometheusRow 'מטופל 9F6B1E90' '97712864' 'נ' 84 '17' 35),
+  (NewPrometheusRow 'מטופל D501B846' '62202733' 'ז' 79 '18' 1)
+)
 try {
   $wb=$excel.Workbooks.Add()
-  AddTable $wb 'Patients' 'Patients' $ad $adRows
-  $wb.SaveAs((Join-Path $patients 'Patients_2026-11-18.xlsx'),51)
+  AddTable $wb 'Patients' 'Patients' $patientHeaders $patientRows
+  $wb.SaveAs((Join-Path $patients ('Patients_'+(Get-Date -Format 'yyyy-MM-dd')+'.xlsx')),51)
   $wb.Close($false)
 
   $wb=$excel.Workbooks.Add()
-  AddTable $wb 'Admissions' 'Admissions' $ad $adRows
+  AddTable $wb 'Admissions' 'Admissions' $ad @()
   AddTable $wb 'DischargeRecords' 'DischargeRecords' $rec @()
   $wb.SaveAs((Join-Path $root 'DischargeData.xlsx'),51)
   $wb.Close($false)
