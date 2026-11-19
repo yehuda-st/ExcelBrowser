@@ -1,6 +1,14 @@
 Option Explicit
 
 ' Paste into the Bridge worksheet code module (not a standard module).
-Private Sub Worksheet_Calculate()
+' The Office.js client writes the command ID as a value to BridgeQueue[Trigger].
+Private Sub Worksheet_Change(ByVal Target As Range)
+    On Error GoTo SafeExit
+    Dim q As ListObject, triggerRange As Range
+    Set q = Me.ListObjects("BridgeQueue")
+    If q.DataBodyRange Is Nothing Then Exit Sub
+    Set triggerRange = q.ListColumns("Trigger").DataBodyRange
+    If Intersect(Target, triggerRange) Is Nothing Then Exit Sub
     ProcessBridgeQueue
+SafeExit:
 End Sub
