@@ -13,7 +13,7 @@ input[type="text"],textarea{direction:rtl;text-align:right}#dischargeDate,#notic
 <body>
 <header><h1>מעקב תאריכי שחרור והודעות למשפחות</h1><small id="mode">לחץ ׳פתח קבצים׳ להתחברות</small></header>
 <main class="wrap">
- <div class="toolbar"><input id="search" type="search" placeholder="חיפוש לפי שם, חדר או תעודת זהות" aria-label="חיפוש מטופל"><span class="pill" id="count"></span><button class="btn secondary" id="connect">פתח קבצים</button><button class="btn secondary" id="diagnostics" type="button">העתק אבחון</button></div>
+ <div class="toolbar"><input id="search" type="search" placeholder="חיפוש לפי שם, חדר או תעודת זהות" aria-label="חיפוש מטופל"><span class="pill" id="count"></span><button class="btn secondary" id="connect">פתח קבצים</button><button class="btn secondary" id="autoOpen" type="button">פתח אוטומטית עם החוברת</button><button class="btn secondary" id="diagnostics" type="button">העתק אבחון</button></div>
  <div class="panel"><table><thead><tr><th>חדר</th><th>מטופל</th><th>תעודת זהות</th><th>תאריך קבלה</th><th>תאריך שחרור מתוכנן</th><th>נמסר ל</th><th>הערה</th><th>תיעוד אחרון</th></tr></thead><tbody id="patients"></tbody></table><div id="empty" class="empty" hidden>אין מטופלים להצגה</div></div>
  <p class="hint">לחיצה על שורה פותחת את התיעוד.</p>
 </main>
@@ -163,6 +163,16 @@ $("diagnostics").addEventListener("click",async()=>{
  catch(e){prompt("העתק את האבחון:",payload);}
 });
 
+$("autoOpen").addEventListener("click",()=>{
+ if(typeof Office==="undefined"||!Office.context?.document?.settings){alert("יש לפתוח את המערכת מתוך תוסף Excel.");return;}
+ const settings=Office.context.document.settings;
+ settings.set("Office.AutoShowTaskpaneWithDocument",true);
+ settings.saveAsync(result=>{
+  if(result.status===Office.AsyncResultStatus.Succeeded){
+   alert("ההגדרה נשמרה. שמור גם את חוברת Excel, סגור ופתח מחדש. אם החלונית אינה נפתחת, בדוק שהמניפסט המעודכן הותקן.");
+  }else alert("שמירת ההגדרה נכשלה: "+(result.error?.message||"שגיאה לא ידועה"));
+ });
+});
 $("connect").addEventListener("click",async()=>{const b=$("connect");b.disabled=true;try{const {ExcelTransport}=await import("./src/bridge/excel-transport.js?v=staging-reuse-1");const {createDischargeDataAdapter}=await import("./discharge-data-adapter.js?v=prometheus-1");bridgeTransport=new ExcelTransport();dischargeDataAdapter=createDischargeDataAdapter(bridgeTransport);store=await dischargeDataAdapter.load(step=>{$("mode").textContent="טוען מ־Excel: "+step});excelConnected=true;$("mode").textContent="מערכת מקוונת";render()}catch(err){const message=err?.stack||err?.message||String(err);$("mode").textContent="שגיאה בטעינת Excel: "+message;console.error("Excel loading failed",err);alert("טעינת Excel נכשלה: "+message)}finally{b.disabled=false}});
 render();
 if(typeof Office!=="undefined"&&Office.onReady)Office.onReady(()=>{$("mode").textContent="לחץ ׳פתח קבצים׳ להתחברות"});
