@@ -78,7 +78,7 @@ try {
   AddTable $wb 'PatientsStaging' 'Staging_Patients' $ad @()
   AddTable $wb 'AdmissionsStaging' 'Staging_Admissions' $ad @()
   AddTable $wb 'RecordsStaging' 'Staging_DischargeRecords' $rec @()
-  AddTable $wb 'ChangesStaging' 'Staging_RecordChanges' (@('operation','rowIndex')+$rec) @()
+  AddTable $wb 'ChangesStaging' 'Staging_RecordChanges' (@('operation','rowIndex')+$rec+@('PatientName','Room','AdmissionStatus')) @()
   $wb.SaveAs((Join-Path $root 'DischargeManager.xlsm'),52)
   $wb.Close($false)
   Write-Host "Created sample files under $root"

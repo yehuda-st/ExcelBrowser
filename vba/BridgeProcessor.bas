@@ -117,6 +117,11 @@ Private Sub DoWrite(ByVal q As ListObject, ByVal r As ListRow)
     Dim expectedRows As String
     expectedRows = CStr(Cell(q, r, "ExpectedRows"))
     If Len(expectedRows) > 0 And CLng(expectedRows) <> target.ListRows.Count Then Err.Raise 5, , "File row count changed"
+    If tableName = "Admissions" Then
+        If Not HasColumn(source, "PatientName") Or Not HasColumn(source, "Room") Or Not HasColumn(source, "AdmissionStatus") Then
+            Err.Raise 5, , "Staging_RecordChanges missing admission columns: PatientName, Room, AdmissionStatus"
+        End If
+    End If
     Dim change As ListRow, operation As String, idx As Long, col As ListColumn, added As ListRow, recordId As String
     For Each change In source.ListRows
         operation = UCase$(CStr(Cell(source, change, "operation")))
