@@ -122,7 +122,7 @@ Private Sub DoWrite(ByVal q As ListObject, ByVal r As ListRow)
             Err.Raise 5, , "Unsupported operation: " & operation
         End If
         For Each col In target.ListColumns
-            If HasColumn(source, col.Name) Then Put target, added, col.Name, Cell(source, change, col.Name)
+            If HasColumn(source, col.Name) Then SetQueueValue target, added, col.Name, Cell(source, change, col.Name)
         Next col
     Next change
     wb.Save
@@ -151,7 +151,7 @@ Private Sub CopyTable(ByVal src As ListObject, ByVal dst As ListObject)
     For Each row In src.ListRows
         Set added = dst.ListRows.Add
         For Each col In dst.ListColumns
-            If HasColumn(src, col.Name) Then Put dst, added, col.Name, Cell(src, row, col.Name)
+            If HasColumn(src, col.Name) Then SetQueueValue dst, added, col.Name, Cell(src, row, col.Name)
         Next col
     Next row
 End Sub
@@ -219,10 +219,10 @@ End Function
 Private Sub AppendMeta(ByVal t As ListObject, ByVal kind As String, ByVal path As String)
     Dim row As ListRow
     Set row = t.ListRows.Add
-    Put t, row, "Kind", kind
-    Put t, row, "Path", path
-    Put t, row, "ModifiedAt", FileStamp(path)
-    Put t, row, "Size", FileLen(path)
+    SetQueueValue t, row, "Kind", kind
+    SetQueueValue t, row, "Path", path
+    SetQueueValue t, row, "ModifiedAt", FileStamp(path)
+    SetQueueValue t, row, "Size", FileLen(path)
 End Sub
 
 Private Function Quote(ByVal s As String) As String
