@@ -169,9 +169,12 @@ End Function
 Private Sub CopyPatientCensus(ByVal src As ListObject, ByVal dst As ListObject)
     Dim nameCol As Long, daysCol As Long, bedCol As Long
     Dim row As ListRow, added As ListRow
-    nameCol = src.ListColumns("שם").Index
-    daysCol = src.ListColumns("ימים").Index
-    bedCol = src.ListColumns("חדר/מיטה").Index
+    ' Prometheus export has fixed column positions (1-based).
+    ' Avoid Hebrew column-name literals: VBA import can change their codepage.
+    If src.ListColumns.Count <> 28 Then Err.Raise 5, , "Expected 28 Prometheus patient columns; got " & src.ListColumns.Count
+    nameCol = 1
+    daysCol = 23
+    bedCol = 17
     ClearTable dst
     For Each row In src.ListRows
         Set added = dst.ListRows.Add
