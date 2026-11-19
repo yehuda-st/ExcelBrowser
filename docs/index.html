@@ -13,7 +13,7 @@ dialog#editor{display:none;flex-direction:column;overflow:hidden;height:min(92vh
 <body>
 <header><h1>מעקב תאריכי שחרור והודעות למשפחות</h1><small id="mode">נתוני הדגמה · ללא חיבור לקובצי Excel</small></header>
 <main class="wrap">
- <div class="toolbar"><input id="search" type="search" placeholder="חיפוש לפי שם, חדר או תעודת זהות" aria-label="חיפוש מטופל"><span class="pill" id="count"></span><button class="btn secondary" id="connect">טען מ־Excel</button><button class="btn secondary" id="reset">אפס נתוני הדגמה</button></div>
+ <div class="toolbar"><input id="search" type="search" placeholder="חיפוש לפי שם, חדר או תעודת זהות" aria-label="חיפוש מטופל"><span class="pill" id="count"></span><button class="btn secondary" id="connect">טען מ־Excel</button><button class="btn secondary" id="reset">אפס נתוני הדגמה</button><button class="btn secondary" id="diagnostics" type="button">העתק אבחון</button></div>
  <div class="panel"><table><thead><tr><th>חדר</th><th>מטופל</th><th>תעודת זהות</th><th>תאריך קבלה</th><th>תאריך שחרור מתוכנן</th><th>נמסר ל</th><th>הערה</th><th>תיעוד אחרון</th></tr></thead><tbody id="patients"></tbody></table><div id="empty" class="empty" hidden>אין מטופלים להצגה</div></div>
  <p class="hint">לחיצה כפולה על שורה פותחת את התיעוד. בגרסת ההדגמה ניתן גם ללחוץ פעם אחת. הנתונים נמצאים בזיכרון הדף בלבד ויימחקו ברענון.</p>
 </main>
@@ -54,7 +54,7 @@ const seedRecords=[
  {id:"r5",admissionId:"a5",dischargeDate:"2026-09-22",decisionAt:"2026-09-18T10:00",noticeAt:"2026-09-18T11:00",recipient:"בת",messenger:"אחות",signer:"ד״ר לוי",remarks:"",createdAt:"2026-09-18T11:02:00"}
 ];
 function createDemoStore(){return {admissions:structuredClone(seedAdmissions),records:structuredClone(seedRecords)}}
-let store=createDemoStore(),selected=null,excelConnected=false,busy=false,dischargeDataAdapter=null;
+let store=createDemoStore(),selected=null,excelConnected=false,busy=false,dischargeDataAdapter=null,bridgeTransport=null;
 const sessionDefaults={messenger:"",signer:""};
 const $=id=>document.getElementById(id);
 const dateLabel=s=>s?new Date(s.length===10?s+"T12:00:00":s).toLocaleString("he-IL",{day:"2-digit",month:"2-digit",year:"numeric",...(s.length>10?{hour:"2-digit",minute:"2-digit"}:{})}):"—";
@@ -144,8 +144,14 @@ $("addForm").addEventListener("submit",async e=>{
 $("closeTop").addEventListener("click",()=>$("editor").close());
 $("cancel").addEventListener("click",()=>$("editor").close());
 $("search").addEventListener("input",render);
+$("diagnostics").addEventListener("click",async()=>{
+ const diagnostics=bridgeTransport?.getDiagnostics?.()||[];
+ const payload=JSON.stringify({generatedAt:new Date().toISOString(),events:diagnostics},null,2);
+ try{await navigator.clipboard.writeText(payload);alert("האבחון הועתק ללוח ("+diagnostics.length+" אירועים).");}
+ catch(e){prompt("העתק את האבחון:",payload);}
+});
 $("reset").addEventListener("click",()=>{if(confirm("לחזור לנתוני הדגמה?")){store=createDemoStore();excelConnected=false;dischargeDataAdapter=null;selected=null;$("mode").textContent="נתוני הדגמה · ללא חיבור לקובצי Excel";render()}});
-$("connect").addEventListener("click",async()=>{const b=$("connect");b.disabled=true;try{const {ExcelTransport}=await import("./src/bridge/excel-transport.js?v=save-2");const {createDischargeDataAdapter}=await import("./discharge-data-adapter.js?v=save-2");dischargeDataAdapter=createDischargeDataAdapter(new ExcelTransport());store=await dischargeDataAdapter.load(step=>{$("mode").textContent="טוען מ־Excel: "+step});excelConnected=true;$("mode").textContent="מחובר דרך VBA";render()}catch(err){const message=err?.stack||err?.message||String(err);$("mode").textContent="שגיאה בטעינת Excel: "+message;console.error("Excel loading failed",err);alert("טעינת Excel נכשלה: "+message)}finally{b.disabled=false}});
+$("connect").addEventListener("click",async()=>{const b=$("connect");b.disabled=true;try{const {ExcelTransport}=await import("./src/bridge/excel-transport.js?v=diagnostics-1");const {createDischargeDataAdapter}=await import("./discharge-data-adapter.js?v=save-2");bridgeTransport=new ExcelTransport();dischargeDataAdapter=createDischargeDataAdapter(bridgeTransport);store=await dischargeDataAdapter.load(step=>{$("mode").textContent="טוען מ־Excel: "+step});excelConnected=true;$("mode").textContent="מחובר דרך VBA";render()}catch(err){const message=err?.stack||err?.message||String(err);$("mode").textContent="שגיאה בטעינת Excel: "+message;console.error("Excel loading failed",err);alert("טעינת Excel נכשלה: "+message)}finally{b.disabled=false}});
 render();
 if(typeof Office!=="undefined"&&Office.onReady)Office.onReady(()=>{$("mode").textContent="נתוני הדגמה · לחץ ׳טען מ־Excel׳ להתחברות"});
 </script>
