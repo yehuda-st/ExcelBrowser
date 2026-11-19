@@ -83,7 +83,11 @@ Private Sub DoRead(ByVal q As ListObject, ByVal r As ListRow)
     Else
         Set source = wb.Worksheets(1).ListObjects(1)
     End If
-    CopyTable source, target
+    If dest = "Staging_Patients" Then
+        CopyPatientCensus source, target
+    Else
+        CopyTable source, target
+    End If
     SetQueueValue q, r, "Result", "{""sheet"":" & Quote(dest) & ",""rowCount"":" & source.ListRows.Count & ",""modifiedAt"":" & Quote(FileStamp(path)) & "}"
     wb.Close SaveChanges:=False
     Exit Sub
@@ -128,7 +132,16 @@ Private Sub DoWrite(ByVal q As ListObject, ByVal r As ListRow)
             Err.Raise 5, , "Unsupported operation: " & operation
         End If
         For Each col In target.ListColumns
-            If HasColumn(source, col.Name) Then SetQueueValue target, added, col.Name, Cell(source, change, col.Name)
+            If HasColumn(source, col.Name) Then
+                If operation = "INSERT" Then
+                    SetQueueValue target, added, col.Name, Cell(source, change, col.Name)
+                ElseIf col.Name <> "PatientID" And col.Name <> "AdmissionDate" Then
+                    ' Empty cells in UPDATE staging mean unchanged fields.
+                    If Len(CStr(Cell(source, change, col.Name))) > 0 Then
+                        SetQueueValue target, added, col.Name, Cell(source, change, col.Name)
+                    End If
+                End If
+            End If
         Next col
     Next change
     wb.Save
@@ -150,6 +163,23 @@ Private Function HasRecordId(ByVal t As ListObject, ByVal id As String) As Boole
         If CStr(Cell(t, row, "RecordID")) = id Then HasRecordId = True: Exit Function
     Next row
 End Function
+
+' Staging_Patients carries raw Prometheus fields for JavaScript parsing.
+' PatientID=raw name; AdmissionDate=days; PatientName=room/bed.
+Private Sub CopyPatientCensus(ByVal src As ListObject, ByVal dst As ListObject)
+    Dim nameCol As Long, daysCol As Long, bedCol As Long
+    Dim row As ListRow, added As ListRow
+    nameCol = src.ListColumns("שם").Index
+    daysCol = src.ListColumns("ימים").Index
+    bedCol = src.ListColumns("חדר/מיטה").Index
+    ClearTable dst
+    For Each row In src.ListRows
+        Set added = dst.ListRows.Add
+        SetQueueValue dst, added, "PatientID", row.Range.Cells(1, nameCol).Value2
+        SetQueueValue dst, added, "AdmissionDate", row.Range.Cells(1, daysCol).Value2
+        SetQueueValue dst, added, "PatientName", row.Range.Cells(1, bedCol).Value2
+    Next row
+End Sub
 
 Private Sub CopyTable(ByVal src As ListObject, ByVal dst As ListObject)
     Dim row As ListRow, added As ListRow, col As ListColumn

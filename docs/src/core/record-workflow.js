@@ -1,3 +1,5 @@
+import {parsePrometheusCensus} from "./prometheus-census.js";
+import {planCensusSync} from "./census-sync.js";
 import {TABLES,admissionKey,rowsToStore,recordToRow} from "./data-schema.js";
 import {prepareWriteBatch} from "./write-batch.js";
 
@@ -7,14 +9,29 @@ export async function loadDischargeStore(client,staging,onProgress=()=>{}){
  onProgress("INIT");
  const {files}=await client.send("INIT");
  onProgress("INIT completed; parsing file metadata");
- const data=files.find(f=>f.kind==="DATA");
- if(!data)throw Error("Missing data workbook");
+ const data=files.find(f=>f.kind==="DATA"),patients=files.find(f=>f.kind==="PATIENTS");
+ if(!data||!patients)throw Error("Missing data or patient workbook");
+ onProgress("READ_FILE patient census");
+ await client.send("READ_FILE",{path:patients.path,sheet:"Staging_Patients"});
+ const census=parsePrometheusCensus(staging.getStaging("Staging_Patients"),patients);
  onProgress("READ_FILE Admissions");
  await client.send("READ_FILE",{path:data.path,table:TABLES.ADMISSIONS,sheet:ADMISSION_SHEET});
+ let admissions=staging.getStaging(ADMISSION_SHEET);
+ const plan=planCensusSync(census,admissions);
+ if(plan.changes.length){
+  onProgress("Synchronizing Admissions");
+  const batch=await prepareWriteBatch(admissions,plan.changes,{table:TABLES.ADMISSIONS});
+  staging.setStaging(CHANGES_SHEET,plan.changes);
+  const saved=await client.send("WRITE_ROWS",{path:data.path,table:TABLES.ADMISSIONS,sheet:CHANGES_SHEET,expectedModifiedAt:data.modifiedAt,expectedRows:batch.expectedRows,batchId:batch.batchId});
+  data.modifiedAt=saved.modifiedAt;
+  onProgress("READ_FILE updated Admissions");
+  await client.send("READ_FILE",{path:data.path,table:TABLES.ADMISSIONS,sheet:ADMISSION_SHEET});
+ }
  onProgress("READ_FILE DischargeRecords");
  await client.send("READ_FILE",{path:data.path,table:TABLES.RECORDS,sheet:RECORD_SHEET});
  onProgress("Reading staging tables");
- const admissions=staging.getStaging(ADMISSION_SHEET),records=staging.getStaging(RECORD_SHEET);
+ admissions=staging.getStaging(ADMISSION_SHEET);
+ const records=staging.getStaging(RECORD_SHEET);
  const store=rowsToStore(admissions,records);
  return {store,source:data,admissions,records};
 }
