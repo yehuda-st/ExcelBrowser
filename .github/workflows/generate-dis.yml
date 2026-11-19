@@ -1,0 +1,22 @@
+name: Generate dis Excel fixtures
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - integration/generate-dis.py
+      - .github/workflows/generate-dis.yml
+permissions:
+  contents: write
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate Excel files
+        run: python3 integration/generate-dis.py
+      - name: Commit generated workbooks
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f dis/*.xlsx dis/*.xlsm
+          git diff --cached --quiet || (git commit -m "Generate Excel fixtures in dis" && git push)
