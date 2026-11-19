@@ -3,12 +3,17 @@ import {prepareWriteBatch} from "./write-batch.js";
 
 const RECORD_SHEET="Staging_DischargeRecords",CHANGES_SHEET="Staging_RecordChanges";
 const ADMISSION_SHEET="Staging_Admissions";
-export async function loadDischargeStore(client,staging){
+export async function loadDischargeStore(client,staging,onProgress=()=>{}){
+ onProgress("INIT");
  const {files}=await client.send("INIT");
+ onProgress("INIT completed; parsing file metadata");
  const data=files.find(f=>f.kind==="DATA");
  if(!data)throw Error("Missing data workbook");
+ onProgress("READ_FILE Admissions");
  await client.send("READ_FILE",{path:data.path,table:TABLES.ADMISSIONS,sheet:ADMISSION_SHEET});
+ onProgress("READ_FILE DischargeRecords");
  await client.send("READ_FILE",{path:data.path,table:TABLES.RECORDS,sheet:RECORD_SHEET});
+ onProgress("Reading staging tables");
  const admissions=staging.getStaging(ADMISSION_SHEET),records=staging.getStaging(RECORD_SHEET);
  const store=rowsToStore(admissions,records);
  return {store,source:data,admissions,records};
