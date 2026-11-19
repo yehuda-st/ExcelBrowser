@@ -14,16 +14,16 @@ Public Sub ProcessBridgeQueue()
     For Each r In q.ListRows
         If CStr(Cell(q, r, "Status")) = "PENDING" Then
             On Error GoTo JobError
-            Put q, r, "Status", "RUNNING"
+            SetQueueValue q, r, "Status", "RUNNING"
             action = CStr(Cell(q, r, "Action"))
             Select Case action
-                Case "PING": Put q, r, "Result", "{""pong"":true}"
+                Case "PING": SetQueueValue q, r, "Result", "{""pong"":true}"
                 Case "INIT": DoInit q, r
                 Case "READ_FILE": DoRead q, r
                 Case "WRITE_ROWS": DoWrite q, r
                 Case Else: Err.Raise vbObjectError + 501, , "Unsupported action: " & action
             End Select
-            Put q, r, "Status", "DONE"
+            SetQueueValue q, r, "Status", "DONE"
             On Error GoTo Fatal
         End If
 ContinueJob:
@@ -36,8 +36,8 @@ JobError:
     message = Err.Description
     Err.Clear
     On Error Resume Next
-    Put q, r, "Error", message
-    Put q, r, "Status", "ERROR"
+    SetQueueValue q, r, "Error", message
+    SetQueueValue q, r, "Status", "ERROR"
     On Error GoTo Fatal
     Resume ContinueJob
 End Sub
@@ -59,7 +59,7 @@ Private Sub DoInit(ByVal q As ListObject, ByVal r As ListRow)
     ClearTable meta
     AppendMeta meta, "PATIENTS", latest
     AppendMeta meta, "DATA", dataPath
-    Put q, r, "Result", "{""files"":[" & FileJson("PATIENTS", latest) & "," & FileJson("DATA", dataPath) & "]}"
+    SetQueueValue q, r, "Result", "{""files"":[" & FileJson("PATIENTS", latest) & "," & FileJson("DATA", dataPath) & "]}"
 End Sub
 
 Private Sub DoRead(ByVal q As ListObject, ByVal r As ListRow)
@@ -78,7 +78,7 @@ Private Sub DoRead(ByVal q As ListObject, ByVal r As ListRow)
         Set source = wb.Worksheets(1).ListObjects(1)
     End If
     CopyTable source, target
-    Put q, r, "Result", "{""sheet"":" & Quote(dest) & ",""rowCount"":" & source.ListRows.Count & ",""modifiedAt"":" & Quote(FileStamp(path)) & "}"
+    SetQueueValue q, r, "Result", "{""sheet"":" & Quote(dest) & ",""rowCount"":" & source.ListRows.Count & ",""modifiedAt"":" & Quote(FileStamp(path)) & "}"
     wb.Close SaveChanges:=False
     Exit Sub
 ReadFail:
@@ -127,7 +127,7 @@ Private Sub DoWrite(ByVal q As ListObject, ByVal r As ListRow)
     Next change
     wb.Save
     wb.Close SaveChanges:=False
-    Put q, r, "Result", "{""written"":" & source.ListRows.Count & ",""modifiedAt"":" & Quote(FileStamp(path)) & "}"
+    SetQueueValue q, r, "Result", "{""written"":" & source.ListRows.Count & ",""modifiedAt"":" & Quote(FileStamp(path)) & "}"
     Exit Sub
 WriteFail:
     Dim msg As String
@@ -187,7 +187,7 @@ Private Function Cell(ByVal t As ListObject, ByVal r As ListRow, ByVal name As S
     Cell = r.Range.Cells(1, t.ListColumns(name).Index).Value2
 End Function
 
-Private Sub Put(ByVal t As ListObject, ByVal r As ListRow, ByVal name As String, ByVal v As Variant)
+Private Sub SetQueueValue(ByVal t As ListObject, ByVal r As ListRow, ByVal name As String, ByVal v As Variant)
     r.Range.Cells(1, t.ListColumns(name).Index).Value2 = v
 End Sub
 
