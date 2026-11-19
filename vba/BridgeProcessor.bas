@@ -8,9 +8,12 @@ Public Sub ProcessBridgeQueue()
     Static busy As Boolean
     If busy Then Exit Sub
     busy = True
+    Dim previousScreenUpdating As Boolean
+    previousScreenUpdating = Application.ScreenUpdating
     Dim q As ListObject, r As ListRow, action As String
     On Error GoTo Fatal
     Set q = ThisWorkbook.Worksheets("Bridge").ListObjects("BridgeQueue")
+    Application.ScreenUpdating = False
     For Each r In q.ListRows
         If CStr(Cell(q, r, "Status")) = "PENDING" Then
             On Error GoTo JobError
@@ -29,6 +32,9 @@ Public Sub ProcessBridgeQueue()
 ContinueJob:
     Next r
 Fatal:
+    On Error Resume Next
+    Application.ScreenUpdating = previousScreenUpdating
+    On Error GoTo 0
     busy = False
     Exit Sub
 JobError:
