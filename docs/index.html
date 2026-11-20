@@ -103,7 +103,7 @@ function renderDays(active){
  const iso=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
  const weekdays=["א","ב","ג","ד","ה","ו","ש"];
  for(const date=new Date(from);date<=until;date.setDate(date.getDate()+1)){
-  const key=iso(date),tr=document.createElement("tr");if(key===iso(today))tr.className="today";const holiday=israelHolidays[key];if(holiday&&holiday[1]!=="observance")tr.classList.add(holiday[1]);if(date.getDay()===6||holiday?.[1]==="holiday")tr.classList.add("nonwork");if(!(groups.get(key)||[]).length)tr.classList.add("no-discharge");
+  const key=iso(date),tr=document.createElement("tr");if(key===iso(today))tr.className="today";const holiday=israelHolidays[key];if(holiday&&holiday[1]!=="observance")tr.classList.add(holiday[1]);if(date.getDay()===6||holiday?.[1]==="holiday")tr.classList.add("nonwork");
   tr.append(el("td",weekdays[date.getDay()],"weekday"),el("td",String(date.getDate()).padStart(2,"0")+"/"+String(date.getMonth()+1).padStart(2,"0"),"date"));
   const names=document.createElement("td");names.className="day-names";if(holiday)names.append(el("span",holiday[0],"holiday-label"));
   const patients=[...(groups.get(key)||[])].sort((a,b)=>compareHebrew(a.name,b.name));
@@ -222,7 +222,7 @@ function printSchedule(){
  for(const d=new Date(start);d<=end;d.setDate(d.getDate()+1)){
   const key=iso(d),holiday=israelHolidays[key],names=(grouped.get(key)||[]).sort(compareHebrew).join(", ");
   const holidayText=holiday?holiday[0]:"";
-  leftRows+="<tr"+(d.getDay()===6||holiday?.[1]==="holiday"||!grouped.has(key)?" class='shaded'":"")+"><td class='nowrap'>"+esc(weekdays[d.getDay()])+"</td><td class='nowrap'>"+esc(pad(d.getDate())+"/"+pad(d.getMonth()+1))+"</td><td>"+(holidayText?"<strong>"+esc(holidayText)+"</strong>"+(names?" · ":""):"")+esc(names)+"</td></tr>";
+  leftRows+="<tr"+(d.getDay()===6||holiday?.[1]==="holiday"?" class='shaded'":"")+"><td class='nowrap'>"+esc(weekdays[d.getDay()])+"</td><td class='nowrap'>"+esc(pad(d.getDate())+"/"+pad(d.getMonth()+1))+"</td><td>"+(holidayText?"<strong>"+esc(holidayText)+"</strong>"+(names?" · ":""):"")+esc(names)+"</td></tr>";
  }
  const html='<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><title>לוח שחרורים מתוכנן</title><style>'+
  '@page{size:A4 portrait;margin:10mm}*{box-sizing:border-box}body{font-family:Arial,"Segoe UI",sans-serif;color:#111;margin:0;direction:rtl}header{text-align:center;margin-bottom:12px}h1{font-size:21px;margin:0 0 4px}h2{font-size:15px;margin:0 0 4px;font-weight:normal}.date-created{font-size:12px}.layout{display:grid;grid-template-columns:38% minmax(0,1fr);gap:22px;align-items:start}table{border-collapse:collapse;width:100%;font-size:12pt;table-layout:auto}th,td{border:1px solid #777;padding:4px 5px;text-align:right;vertical-align:top}th{background:#e8edf2}.nowrap{white-space:nowrap}.shaded,.shaded td{background:#f1f3f5}tr{break-inside:avoid;page-break-inside:avoid}.printbar{margin:12px 0;text-align:center}.printbar button{padding:8px 20px;cursor:pointer}@media print{.printbar{display:none}}'+
