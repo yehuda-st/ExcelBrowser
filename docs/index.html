@@ -218,7 +218,10 @@ function printSchedule(){
  const popup=window.open("","_blank");
  if(!popup){alert("הדפסת הדוח נחסמה. יש לאפשר פתיחת חלונות קופצים לתוסף.");return}
  popup.document.open();popup.document.write(html);popup.document.close();popup.focus();
- // Launch the native print dialog automatically; the visible print button remains as fallback.
+ // A script-opened print window can close itself after either Print or Cancel.
+ // Register before print() because some browsers dispatch afterprint synchronously.
+ popup.addEventListener("afterprint",()=>{try{popup.close()}catch(err){console.warn("Could not close print preview",err)}},{once:true});
+ // Keep the in-page print button as a fallback for hosts that suppress automatic printing.
  try{popup.print()}catch(err){console.warn("Automatic print dialog unavailable",err)}
 }
 $("printSchedule").addEventListener("click",printSchedule);
