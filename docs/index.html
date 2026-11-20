@@ -16,7 +16,7 @@ input[type="text"],textarea{direction:rtl;text-align:right}#dischargeDate,#notic
 <main class="wrap">
  <div class="toolbar"><input id="search" type="search" placeholder="חיפוש לפי שם, חדר או תעודת זהות" aria-label="חיפוש מטופל"><span class="pill" id="count"></span><button class="btn secondary" id="connect">פתח קבצים</button><button class="btn secondary" id="printSchedule" type="button">הדפס לוח שחרורים</button><button class="btn secondary" id="diagnostics" type="button">העתק אבחון</button></div>
  <div class="views"><button class="btn secondary" id="tableView" aria-pressed="true" type="button">טבלת מטופלים</button><button class="btn secondary" id="daysView" aria-pressed="false" type="button">שחרורים לפי יום</button><select class="sort-select" id="sortOrder" aria-label="סדר מיון"><option value="room">חדר + שם (א–ב)</option><option value="name">שם (א–ב)</option><option value="discharge">תאריך שחרור (מוקדם למאוחר) + שם</option></select></div>
- <div class="panel" id="tablePanel"><table><thead><tr><th>חדר</th><th>מטופל</th><th>תעודת זהות</th><th>תאריך קבלה</th><th>תאריך שחרור מתוכנן</th><th>נמסר ל</th><th>הערה</th><th>תיעוד אחרון</th></tr></thead><tbody id="patients"></tbody></table><div id="empty" class="empty" hidden>אין מטופלים להצגה</div></div>
+ <div class="panel" id="tablePanel"><table><thead><tr><th>חדר</th><th>מטופל</th><th>תאריך שחרור מתוכנן</th><th>נמסר ל</th><th>הערה</th><th>תיעוד אחרון</th></tr></thead><tbody id="patients"></tbody></table><div id="empty" class="empty" hidden>אין מטופלים להצגה</div></div>
  <div id="daysPanel" hidden><div class="daily-layout"><aside class="panel daily-sidebar"><h3>רשימת מטופלים</h3><div id="dailyPatients"></div></aside><section class="panel daily-schedule"><table class="schedule-table"><thead><tr><th class="weekday">יום</th><th class="date">תאריך</th><th>מטופלים</th></tr></thead><tbody id="dailyRows"></tbody></table></section></div></div>
  <p class="hint">לחיצה על שורה או על שם מטופל פותחת את התיעוד.</p>
 </main>
@@ -107,7 +107,7 @@ function render(){
  $("count").textContent=active.length+" מטופלים נוכחיים";
  for(const a of visible){
   const r=latestFor(a),tr=document.createElement("tr");tr.tabIndex=0;
-  const fields=[a.room,a.name,a.patientId,dateLabel(a.admissionDate),r?(r.cancelled?"בוטל":r.dischargeDate?dischargeLabel(r.dischargeDate):"לא נקבע"):"טרם נקבע",r?(r.recipient||"לא נמסר"):"—",r?.remarks||"—",r?dateLabel(r.createdAt):"—"];
+  const fields=[a.room,a.name,r?(r.cancelled?"בוטל":r.dischargeDate?dischargeLabel(r.dischargeDate):"לא נקבע"):"טרם נקבע",r?(r.recipient||"לא נמסר"):"—",r?.remarks||"—",r?dateLabel(r.createdAt):"—"];
   fields.forEach((v,i)=>tr.append(el("td",v,i===5&&r?(r.noticeAt?"ok":"pending"):"")));
   tr.addEventListener("dblclick",()=>openEditor(a.id));tr.addEventListener("click",()=>openEditor(a.id));
   tr.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();openEditor(a.id)}});body.append(tr);
