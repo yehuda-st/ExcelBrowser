@@ -32,7 +32,7 @@ export async function loadDischargeStore(client,staging,onProgress=()=>{}){
  onProgress("Reading staging tables");
  admissions=staging.getStaging(ADMISSION_SHEET);
  const records=staging.getStaging(RECORD_SHEET);
- const store=rowsToStore(admissions,records);
+ const store=rowsToStore(admissions.filter(r=>Object.values(r).some(v=>String(v??"").trim()!=="")),records.filter(r=>Object.values(r).some(v=>String(v??"").trim()!=="")));
  return {store,source:data,admissions,records};
 }
 export async function appendDischargeRecord(client,staging,loaded,record,admission){

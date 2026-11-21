@@ -6,7 +6,7 @@ const canonical=value=>JSON.stringify(value);
 export async function prepareWriteBatch(rows,changes,options={}){
  if(!Array.isArray(rows)||!Array.isArray(changes))throw Error("Invalid write batch");
  const result=clone(rows),seen=new Set();
- const keys=new Set(rows.map(key));
+ const keys=new Set(rows.filter(r=>Object.values(r).some(v=>String(v??"").trim()!=="")).map(key));
  const recordsMode=options.table==="DischargeRecords";
  const recordIds=new Set(rows.map(r=>String(r.RecordID??"")).filter(Boolean));
  const admissions=new Set((options.admissions??[]).map(key));

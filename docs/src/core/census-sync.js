@@ -34,6 +34,7 @@ export function planCensusSync(census,data){
   incoming.set(key,row);
  }
  data.forEach((row,index)=>{
+  if(Object.values(row).every(v=>str(v)===""))return;
   let key;
   try { key=admissionKey(row); }
   catch (error) {

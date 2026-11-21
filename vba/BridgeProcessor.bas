@@ -128,7 +128,8 @@ Private Sub DoWrite(ByVal q As ListObject, ByVal r As ListRow)
         If operation = "INSERT" Then
             recordId = CStr(Cell(source, change, "RecordID"))
             If Len(recordId) > 0 And HasRecordId(target, recordId) Then Err.Raise 5, , "Duplicate RecordID"
-            Set added = target.ListRows.Add
+            Set added = FirstEmptyTableRow(target)
+            If added Is Nothing Then Set added = target.ListRows.Add
         ElseIf operation = "UPDATE" Then
             idx = CLng(Cell(source, change, "rowIndex")) + 1
             If idx < 1 Or idx > target.ListRows.Count Then Err.Raise 5, , "Invalid rowIndex"
@@ -160,6 +161,23 @@ WriteFail:
     wb.Close SaveChanges:=False
     Err.Raise vbObjectError + 503, , msg
 End Sub
+
+Private Function FirstEmptyTableRow(ByVal t As ListObject) As ListRow
+    Dim candidate As ListRow, col As ListColumn, emptyRow As Boolean
+    For Each candidate In t.ListRows
+        emptyRow = True
+        For Each col In t.ListColumns
+            If Len(Trim$(CStr(candidate.Range.Cells(1, col.Index).Value2))) > 0 Then
+                emptyRow = False
+                Exit For
+            End If
+        Next col
+        If emptyRow Then
+            Set FirstEmptyTableRow = candidate
+            Exit Function
+        End If
+    Next candidate
+End Function
 
 Private Function HasRecordId(ByVal t As ListObject, ByVal id As String) As Boolean
     If Not HasColumn(t, "RecordID") Then Exit Function
