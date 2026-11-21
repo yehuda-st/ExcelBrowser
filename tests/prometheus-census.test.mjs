@@ -10,3 +10,10 @@ test("Prometheus raw census converts name, ID, bed and days (admission day 1)",(
 test("Reject invalid days rather than corrupt admissions",()=>{
  assert.throws(()=>parsePrometheusCensus([{PatientID:"מטופל 5EB18D19 97790615-P נ,95",AdmissionDate:0,PatientName:1}],{modifiedAt:"2026-11-19T08:00:00"}),/Invalid hospitalization days/);
 });
+
+test("Prometheus split ID with hyphen check digit and 7-digit prefix",()=>{
+ const rows=[{PatientID:"מטופל לדוגמה        2609992-4 נ,84",AdmissionDate:2,PatientName:5}];
+ assert.deepEqual(parsePrometheusCensus(rows,{modifiedAt:"2026-11-21T08:00:00"}),[
+  {PatientName:"מטופל לדוגמה",PatientID:"026099924",AdmissionDate:"2026-11-20",Room:"5",AdmissionStatus:"מאושפז"}
+ ]);
+});
