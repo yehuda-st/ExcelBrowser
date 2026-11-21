@@ -34,7 +34,14 @@ export function planCensusSync(census,data){
   incoming.set(key,row);
  }
  data.forEach((row,index)=>{
-  const key=admissionKey(row);
+  let key;
+  try { key=admissionKey(row); }
+  catch (error) {
+   const rawDate=str(row?.AdmissionDate);
+   const rawId=str(row?.PatientID);
+   const maskedId=rawId ? "***"+rawId.slice(-4) : "(empty)";
+   throw Error(`Invalid Admissions row ${index+1}: PatientID=${maskedId}, AdmissionDate=${JSON.stringify(rawDate||"(empty)")}. Expected a valid Excel date serial or YYYY-MM-DD. ${error.message}`);
+  }
   if(!existing.has(key))existing.set(key,[]);
   existing.get(key).push({row,index});
  });
