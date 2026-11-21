@@ -78,17 +78,16 @@ Private Sub DoRead(ByVal q As ListObject, ByVal r As ListRow)
     Set target = FindTable(dest)
     Set wb = Workbooks.Open(path, ReadOnly:=True, UpdateLinks:=False)
     On Error GoTo ReadFail
-    If Len(tableName) > 0 Then
-        Set source = FindTableIn(wb, tableName)
-    Else
-        Set source = wb.Worksheets(1).ListObjects(1)
-    End If
+    Dim readRows As Long
     If dest = "Staging_Patients" Then
-        CopyPatientCensus source, target
+        readRows = CopyPatientCensusSheet(wb.Worksheets(1), target)
     Else
+        If Len(tableName) = 0 Then Err.Raise 5, , "READ_FILE requires TableName for " & dest
+        Set source = FindTableIn(wb, tableName)
         CopyTable source, target
+        readRows = source.ListRows.Count
     End If
-    SetQueueValue q, r, "Result", "{""sheet"":" & Quote(dest) & ",""rowCount"":" & source.ListRows.Count & ",""modifiedAt"":" & Quote(FileStamp(path)) & "}"
+    SetQueueValue q, r, "Result", "{""sheet"":" & Quote(dest) & ",""rowCount"":" & readRows & ",""modifiedAt"":" & Quote(FileStamp(path)) & "}"
     wb.Close SaveChanges:=False
     Exit Sub
 ReadFail:
@@ -189,23 +188,28 @@ End Function
 
 ' Staging_Patients carries raw Prometheus fields for JavaScript parsing.
 ' PatientID=raw name; AdmissionDate=days; PatientName=room/bed.
-Private Sub CopyPatientCensus(ByVal src As ListObject, ByVal dst As ListObject)
-    Dim nameCol As Long, daysCol As Long, bedCol As Long
-    Dim row As ListRow, added As ListRow
-    ' Prometheus export has fixed column positions (1-based).
-    ' Avoid Hebrew column-name literals: VBA import can change their codepage.
-    If src.ListColumns.Count <> 28 Then Err.Raise 5, , "Expected 28 Prometheus patient columns; got " & src.ListColumns.Count
-    nameCol = 1
-    daysCol = 23
-    bedCol = 17
+' Prometheus export is a normal worksheet, not an Excel ListObject.
+' Row 1 contains headers; fixed columns: name/ID=1, days=23, bed=17.
+Private Function CopyPatientCensusSheet(ByVal sh As Worksheet, ByVal dst As ListObject) As Long
+    Dim lastCell As Range, lastRow As Long, lastCol As Long, i As Long
+    Dim added As ListRow
+    Set lastCell = sh.Cells.Find(What:="*", After:=sh.Cells(1, 1), LookIn:=xlValues, LookAt:=xlPart, SearchOrder:=xlByRows, SearchDirection:=xlPrevious)
     ClearTable dst
-    For Each row In src.ListRows
-        Set added = dst.ListRows.Add
-        SetQueueValue dst, added, "PatientID", row.Range.Cells(1, nameCol).Value2
-        SetQueueValue dst, added, "AdmissionDate", row.Range.Cells(1, daysCol).Value2
-        SetQueueValue dst, added, "PatientName", row.Range.Cells(1, bedCol).Value2
-    Next row
-End Sub
+    If lastCell Is Nothing Then Exit Function
+    lastRow = lastCell.Row
+    Set lastCell = sh.Cells.Find(What:="*", After:=sh.Cells(1, 1), LookIn:=xlValues, LookAt:=xlPart, SearchOrder:=xlByColumns, SearchDirection:=xlPrevious)
+    lastCol = lastCell.Column
+    If lastCol < 23 Then Err.Raise 5, , "Expected at least 23 Prometheus columns; got " & lastCol
+    For i = 2 To lastRow
+        If Len(Trim$(CStr(sh.Cells(i, 1).Value2))) > 0 Then
+            Set added = dst.ListRows.Add
+            SetQueueValue dst, added, "PatientID", sh.Cells(i, 1).Value2
+            SetQueueValue dst, added, "AdmissionDate", sh.Cells(i, 23).Value2
+            SetQueueValue dst, added, "PatientName", sh.Cells(i, 17).Value2
+            CopyPatientCensusSheet = CopyPatientCensusSheet + 1
+        End If
+    Next i
+End Function
 
 Private Sub CopyTable(ByVal src As ListObject, ByVal dst As ListObject)
     Dim row As ListRow, added As ListRow, col As ListColumn
