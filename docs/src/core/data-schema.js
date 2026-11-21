@@ -1,11 +1,11 @@
 export const TABLES=Object.freeze({ADMISSIONS:"Admissions",RECORDS:"DischargeRecords"});
 export const ADMISSION_COLUMNS=Object.freeze(["PatientID","AdmissionDate","PatientName","Room","AdmissionStatus"]);
 export const RECORD_COLUMNS=Object.freeze(["RecordID","PatientID","AdmissionDate","DischargeDate","Cancelled","NoticeAt","Recipient","Messenger","Remarks","Signer","SignedAt"]);
-export const admissionKey=row=>String(row.PatientID??"").trim().padStart(9,"0")+"|"+String(row.AdmissionDate??"").trim();
+export const admissionKey=row=>String(row.PatientID??"").trim()+"|"+String(row.AdmissionDate??"").trim();
 export function rowsToStore(admissions,records){
  const map=new Map(admissions.map(row=>{
   const id=admissionKey(row);
-  return [id,{id,patientId:String(row.PatientID).padStart(9,"0"),admissionDate:String(row.AdmissionDate),name:String(row.PatientName??""),room:String(row.Room??""),active:row.AdmissionStatus==="מאושפז"}];
+  return [id,{id,patientId:String(row.PatientID).trim(),admissionDate:String(row.AdmissionDate),name:String(row.PatientName??""),room:String(row.Room??""),active:row.AdmissionStatus==="מאושפז"}];
  }));
  const result=records.map(row=>{
   const id=admissionKey(row);

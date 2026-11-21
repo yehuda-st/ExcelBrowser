@@ -1,7 +1,7 @@
 const clone=x=>structuredClone(x);
 const protectedFields=new Set(["RecordID","DischargeDate","Cancelled","NoticeAt","Recipient","Messenger","Remarks","Signer","SignedAt"]);
 const admissionFields=new Set(["PatientName","Room","AdmissionStatus"]);
-const key=r=>String(r.PatientID).trim().padStart(9,"0")+"|"+String(r.AdmissionDate).trim();
+const key=r=>String(r.PatientID).trim()+"|"+String(r.AdmissionDate).trim();
 const canonical=value=>JSON.stringify(value);
 export async function prepareWriteBatch(rows,changes,options={}){
  if(!Array.isArray(rows)||!Array.isArray(changes))throw Error("Invalid write batch");
