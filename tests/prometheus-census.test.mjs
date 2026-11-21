@@ -17,3 +17,10 @@ test("Prometheus split ID with hyphen check digit and 7-digit prefix",()=>{
   {PatientName:"מטופל לדוגמה",PatientID:"2609992-4",AdmissionDate:"2026-11-20",Room:"5",AdmissionStatus:"מאושפז"}
  ]);
 });
+
+test("Preserve short hyphenated patient ID exactly",()=>{
+ const rows=[{PatientID:"מטופל לדוגמה        905848-8 ז,85",AdmissionDate:1,PatientName:21}];
+ assert.deepEqual(parsePrometheusCensus(rows,{modifiedAt:"2026-11-21T08:00:00"}),[
+  {PatientName:"מטופל לדוגמה",PatientID:"905848-8",AdmissionDate:"2026-11-21",Room:"21",AdmissionStatus:"מאושפז"}
+ ]);
+});
