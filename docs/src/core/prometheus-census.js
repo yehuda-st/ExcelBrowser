@@ -2,7 +2,7 @@
 // No HMO column exists in this source; do not fabricate one.
 const str=v=>String(v??"").trim();
 export function parsePrometheusName(raw){
- const m=str(raw).replace(/\s+/g," ").match(/^(.*?)\s+(\d{7,9})(?:-(\d|P))?\s+[זנ]\s*,\s*\d{1,3}$/u);
+ const m=str(raw).replace(/\s+/g," ").match(/^(.*?)\s+(\d{1,9})(?:-(\d|P))?\s+[זנ]\s*,\s*\d{1,3}$/u);
  if(!m||!m[1].trim())throw Error("Unrecognized patient name/ID");
  return {PatientName:m[1].trim(),PatientID:m[2]+(m[3]?"-"+m[3]:"")};
 }
