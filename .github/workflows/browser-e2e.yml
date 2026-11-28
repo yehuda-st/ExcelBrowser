@@ -1,0 +1,77 @@
+name: Browser end-to-end
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+  issues: write
+jobs:
+  integration:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install AutoHotkey v2
+        shell: pwsh
+        run: |
+          choco install autohotkey --version=2.0.19 -y --no-progress
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Install Playwright Chromium
+        shell: pwsh
+        run: |
+          npm install --no-save --package-lock=false playwright@1.51.1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npx playwright install chromium
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Run real browser integration
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force logs | Out-Null
+          Copy-Item integration/fixtures/patients.csv server/ci-patients.csv
+          Copy-Item integration/fixtures/discharge-records.csv server/ci-records.csv
+          @'
+          [Server]
+          Port=8765
+          AutoOpenBrowser=false
+          [Data]
+          PatientsFile=ci-patients.csv
+          DischargeRecordsFile=ci-records.csv
+          '@ | Set-Content server/config.ini
+          $ahk = Join-Path $env:ProgramFiles 'AutoHotkey\v2\AutoHotkey64.exe'
+          $proc = Start-Process $ahk -ArgumentList '/ErrorStdOut', 'server/launcher.ahk' -RedirectStandardOutput logs/ahk.stdout.log -RedirectStandardError logs/ahk.stderr.log -PassThru
+          try {
+            node integration/browser-e2e.mjs 2>&1 | Tee-Object logs/integration.log
+            $code = $LASTEXITCODE
+          } finally {
+            if (!$proc.HasExited) { Stop-Process -Id $proc.Id -Force }
+          }
+          exit $code
+      - name: Upload diagnostic logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-e2e-logs
+          path: logs/
+          if-no-files-found: warn
+      - name: Publish failure issue or update existing issue
+        if: failure() && github.event.pull_request.head.repo.full_name == github.repository || failure() && github.event_name == 'workflow_dispatch'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const title = 'Browser end-to-end failure';
+            const files = ['integration.log','ahk.stdout.log','ahk.stderr.log'];
+            const logs = files.map(name => {
+              const path = 'logs/' + name;
+              return '### ' + name + '\n~~~text\n' + (fs.existsSync(path) ? fs.readFileSync(path,'utf8').slice(-12000) : 'Log unavailable; inspect setup steps.') + '\n~~~';
+            }).join('\n\n');
+            const url = context.serverUrl + '/' + context.repo.owner + '/' + context.repo.repo + '/actions/runs/' + context.runId;
+            const body = 'Run: ' + url + '\nCommit: ' + context.sha + '\nLocations: integration/browser-e2e.mjs; server/launcher.ahk; server/RecordStore.ahk; docs/index.html. See assertion stack and AHK error lines below.\n\n' + logs;
+            const issues = await github.paginate(github.rest.issues.listForRepo,{...context.repo,state:'open'});
+            const existing = issues.find(i => !i.pull_request && i.title === title);
+            if(existing) await github.rest.issues.createComment({...context.repo,issue_number:existing.number,body});
+            else await github.rest.issues.create({...context.repo,title,body});
