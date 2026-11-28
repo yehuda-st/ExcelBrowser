@@ -49,6 +49,14 @@ jobs:
           } finally {
             if (!$proc.HasExited) { Stop-Process -Id $proc.Id -Force }
           }
+          if ($code -ne 0) { exit $code }
+          $proc = Start-Process $ahk -ArgumentList '/ErrorStdOut', 'server/launcher.ahk' -PassThru
+          try {
+            node integration/restart-check.mjs 2>&1 | Tee-Object -Append logs/integration.log
+            $code = $LASTEXITCODE
+          } finally {
+            if (!$proc.HasExited) { Stop-Process -Id $proc.Id -Force }
+          }
           exit $code
       - name: Upload diagnostic logs
         if: always()
