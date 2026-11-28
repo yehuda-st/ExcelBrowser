@@ -11,6 +11,9 @@ if port < 1025 || port > 65535
 baseUrl := "http://127.0.0.1:" port "/"
 server := HttpServer()
 server.Add(baseUrl, HandleRequest)
+lastHeartbeat := A_TickCount
+seenHeartbeat := false
+SetTimer(CheckIdle, 5000)
 if StrLower(IniRead(config, "Server", "AutoOpenBrowser", "true")) = "true"
     Run(baseUrl)
 
@@ -23,6 +26,10 @@ HandleRequest(req, rsp) {
     }
     if req.Verb != "GET" {
         rsp("Method not allowed", 405)
+        return
+    }
+    if req.AbsPath = "/api/heartbeat" {
+        Heartbeat(req, rsp)
         return
     }
     if req.AbsPath = "/api/health" {
@@ -120,4 +127,27 @@ SaveRecord(req, rsp) {
     } catch {
         rsp("Unable to save record", 503)
     }
+}
+
+Heartbeat(req, rsp) {
+    global lastHeartbeat, seenHeartbeat, baseUrl
+    if req.Headers.Get("X-Discharge-Client", "") != "1"
+        || req.Headers.Get("Sec-Fetch-Site", "same-origin") = "cross-site"
+        || (req.Headers.Has("Origin") && req.Headers["Origin"] != RTrim(baseUrl, "/")) {
+        rsp("Forbidden", 403)
+        return
+    }
+    lastHeartbeat := A_TickCount
+    seenHeartbeat := true
+    rsp["Content-Type"] := "application/json"
+    rsp('{"status":"ok"}')
+}
+
+CheckIdle() {
+    global lastHeartbeat, seenHeartbeat, config
+    ; Opt-in: browsers can throttle timers while backgrounded.
+    if StrLower(IniRead(config, "Server", "ExitWhenIdle", "false")) != "true"
+        return
+    if seenHeartbeat && A_TickCount - lastHeartbeat > 300000
+        ExitApp()
 }
