@@ -10,8 +10,8 @@ const old=[
  {PatientID:"000000002",AdmissionDate:"2026-11-02",PatientName:"B",Room:"2",AdmissionStatus:"מאושפז"}
 ];
 const census=[
- {PatientID:"1",AdmissionDate:"2026-11-01",PatientName:"A",Room:"4"},
- {PatientID:"3",AdmissionDate:"2026-11-03",PatientName:"C",Room:"3"}
+ {PatientID:"000000001",AdmissionDate:"2026-11-01",PatientName:"A",Room:"4"},
+ {PatientID:"000000003",AdmissionDate:"2026-11-03",PatientName:"C",Room:"3"}
 ];
 test("plan updates all admission rows while preserving signed fields",()=>{
  const {changes}=planCensusSync(census,old);

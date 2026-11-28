@@ -4,7 +4,7 @@ import {MockVBA} from "../docs/src/bridge/mock-vba.js";
 import {createDischargeDataAdapter} from "../docs/discharge-data-adapter.js";
 test("UI adapter loads, appends, and reloads without changing existing UI record shape",async()=>{
  const mock=new MockVBA([
-  {path:"/patients/census.xlsx",modifiedAt:"2026-11-18T00:00:00Z",rows:[]},
+  {path:"/patients/census.xlsx",modifiedAt:"2026-11-18T00:00:00Z",rows:[{PatientID:"Patient 000000001 ז, 70",AdmissionDate:"18",PatientName:"12"}]},
   {path:"/data.xlsx",modifiedAt:"2026-11-18T00:00:00Z",tables:{
    Admissions:[{PatientID:"000000001",AdmissionDate:"2026-11-01",PatientName:"Patient",Room:"12",AdmissionStatus:"מאושפז"}],
    DischargeRecords:[]}}
