@@ -10,7 +10,7 @@ const admission=(id,date,room,status="מאושפז",extra={})=>({
  PatientName:"Patient "+id,Room:String(room),AdmissionStatus:status,...extra
 });
 const censusRow=(id,date,room)=>({
- PatientID:String(id),AdmissionDate:date,PatientName:"Patient "+id,Room:String(room)
+ PatientID:String(id).padStart(9,"0"),AdmissionDate:date,PatientName:"Patient "+id,Room:String(room)
 });
 const make=(data,patients)=>new MockVBA([
  {path:"/patients/current.xlsx",modifiedAt:"2026-11-18T00:00:00Z",rows:patients},
@@ -47,10 +47,11 @@ test("same admission reappearing after absence reactivates instead of inserting"
  assert.deepEqual(changes,[{operation:"UPDATE",rowIndex:0,values:{Room:"7",AdmissionStatus:"מאושפז"}}]);
 });
 
-test("duplicate admission in census with padded and unpadded IDs is rejected",()=>{
- assert.throws(()=>planCensusSync([
-  censusRow(1,"2026-11-01","5"),censusRow("000000001","2026-11-01","5")
- ],[]),/Duplicate census admission/);
+test("padded and unpadded IDs remain distinct; exact duplicates are rejected",()=>{
+ const a={...censusRow(1,"2026-11-01","5"),PatientID:"1"};
+ const b={...a,PatientID:"000000001"};
+ assert.equal(planCensusSync([a,b],[]).changes.length,2);
+ assert.throws(()=>planCensusSync([a,a],[]),/Duplicate census admission/);
 });
 
 test("multiple signed records of one admission remain unchanged except admission metadata",()=>{
