@@ -31,7 +31,7 @@ test("atomic executor rejects invalid second operation without partial changes",
 });
 test("replay of completed batch is safe even after modified timestamp changes",async()=>{
  const mock=new MockVBA([
-  {path:"/patients/latest.xlsx",modifiedAt:"2026-11-18T00:00:00Z",rows:[{PatientID:"1",AdmissionDate:"2026-11-01",PatientName:"A",Room:"2"}]},
+  {path:"/patients/latest.xlsx",modifiedAt:"2026-11-18T00:00:00Z",rows:[{PatientID:"000000001",AdmissionDate:"2026-11-01",PatientName:"A",Room:"2"}]},
   {path:"/data.xlsx",modifiedAt:"2026-11-17T00:00:00Z",rows:[old]}
  ],{PatientsFolder:"/patients",DataFilePath:"/data.xlsx"});
  const client=new BridgeClient(mock);
