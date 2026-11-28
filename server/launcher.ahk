@@ -80,7 +80,14 @@ ServeCsv(req, rsp) {
             rsp("Data file unavailable", 503)
             return
         }
+        stamp := FileGetTime(file, "M")
         csv := FileRead(file, "UTF-8")
+        if stamp != FileGetTime(file, "M") {
+            rsp("Data file changed during read", 503)
+            return
+        }
+        if key = "PatientsFile"
+            rsp["X-Census-Date"] := FormatTime(stamp, "yyyy-MM-dd")
         rsp["Content-Type"] := "text/csv"
         rsp(csv)
     } catch {
