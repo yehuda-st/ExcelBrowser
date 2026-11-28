@@ -251,7 +251,28 @@ async function connectLocal(){
 }
 $("connect").addEventListener("click",connectLocal);
 render();
-if(localMode)connectLocal();
+let heartbeatRunning=false;
+async function checkHeartbeat(){
+ if(!localMode||heartbeatRunning)return;
+ heartbeatRunning=true;
+ try{
+  const response=await fetch("/api/heartbeat",{cache:"no-store",headers:{"X-Discharge-Client":"1"},signal:AbortSignal.timeout(5000)});
+  if(!response.ok)throw Error("Heartbeat failed");
+  if(!serverConnected&&!busy&&!$("editor").open&&!$("connect").disabled)await connectLocal();
+ }catch{
+  if(serverConnected){
+   serverConnected=false;
+   $("mode").textContent="החיבור לשרת נותק — השמירה חסומה";
+   connectionEvents.push({at:new Date().toISOString(),event:"disconnected"});
+  }
+ }finally{heartbeatRunning=false;}
+}
+if(localMode){
+ connectLocal();
+ setInterval(checkHeartbeat,10000);
+ document.addEventListener("visibilitychange",()=>{if(!document.hidden)checkHeartbeat()});
+ window.addEventListener("online",checkHeartbeat);
+}
 else $("mode").textContent="מצב הדגמה — ללא שמירה לקובץ";
 </script>
 </body></html>
