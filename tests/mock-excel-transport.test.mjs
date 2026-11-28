@@ -5,7 +5,7 @@ import {MockExcelTransport} from "../docs/src/bridge/mock-excel-transport.js";
 import {createDischargeDataAdapter} from "../docs/discharge-data-adapter.js";
 
 const make=()=>new MockExcelTransport([
- {path:"/patients/census.xlsx",modifiedAt:"2026-11-18T00:00:00Z",rows:[]},
+ {path:"/patients/census.xlsx",modifiedAt:"2026-11-18T00:00:00Z",rows:[{PatientID:"Patient 000000001 ז, 70",AdmissionDate:"18",PatientName:"12"}]},
  {path:"/data.xlsx",modifiedAt:"2026-11-18T00:00:00Z",tables:{
   Admissions:[{PatientID:"000000001",AdmissionDate:"2026-11-01",PatientName:"Patient",Room:"12",AdmissionStatus:"מאושפז"}],
   DischargeRecords:[]}}
@@ -45,7 +45,7 @@ test("real UI adapter works through workbook tables and Calculate mock",async()=
  const transport=make(),adapter=createDischargeDataAdapter(transport);
  const store=await adapter.load();
  assert.equal(store.admissions.length,1);
- assert.equal(transport.getTable("BridgeQueue").filter(x=>x.action==="READ_FILE").length,2);
+ assert.equal(transport.getTable("BridgeQueue").filter(x=>x.action==="READ_FILE").length,3);
  assert.equal(transport.getTable("Staging_Admissions").length,1);
  const admission=store.admissions[0];
  const record={id:"r1",admissionId:admission.id,dischargeDate:"2026-11-25",cancelled:false,noticeAt:"",recipient:"",messenger:"",remarks:"",signer:"Doctor",createdAt:"2026-11-18T09:00:00"};
@@ -77,7 +77,7 @@ test("INIT publishes metadata but leaves data staging to READ_FILE",async()=>{
  await client.send("READ_FILE",{path:init.files[0].path,sheet:"Staging_Patients"});
  await client.send("READ_FILE",{path:init.files[1].path,table:"Admissions",sheet:"Staging_Admissions"});
  await client.send("READ_FILE",{path:init.files[1].path,table:"DischargeRecords",sheet:"Staging_DischargeRecords"});
- assert.deepEqual(transport.getTable("Staging_Patients"),[]);
+ assert.deepEqual(transport.getTable("Staging_Patients"),[{PatientID:"Patient 000000001 ז, 70",AdmissionDate:"18",PatientName:"12"}]);
  assert.equal(transport.getTable("Staging_Admissions")[0].Room,"12");
  assert.deepEqual(transport.getTable("Staging_DischargeRecords"),[]);
 });
