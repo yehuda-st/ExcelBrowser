@@ -16,7 +16,8 @@ export function loadCsvStore(patientText,recordText,{completeCensus=true}={}){
   if(ids.has(row.RecordID))throw Error("Duplicate record ID");
   ids.add(row.RecordID);
   const key=admissionKey(row);
-  if(!admissions.has(key))admissions.set(key,{PatientID:row.PatientID,AdmissionDate:row.AdmissionDate,PatientName:"",Room:"",AdmissionStatus:completeCensus?"משוחרר":"לא ידוע"});
+  if(!admissions.has(key))admissions.set(key,{PatientID:row.PatientID,AdmissionDate:row.AdmissionDate,PatientName:row.PatientName||row.PatientID,Room:row.Room||"",AdmissionStatus:completeCensus?"משוחרר":"לא ידוע"});
+  else if(admissions.get(key).AdmissionStatus!=="מאושפז" && row.PatientName)Object.assign(admissions.get(key),{PatientName:row.PatientName,Room:row.Room||""});
  }
  return rowsToStore([...admissions.values()],records);
 }
