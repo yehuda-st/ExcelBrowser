@@ -31,7 +31,8 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           New-Item -ItemType Directory -Force logs | Out-Null
-          Copy-Item integration/fixtures/patients.csv server/ci-patients.csv
+          Copy-Item integration/fixtures/prometheus-patients.csv server/ci-patients.csv
+          (Get-Item server/ci-patients.csv).LastWriteTime = [datetime]'2026-11-28T12:00:00'
           Copy-Item integration/fixtures/discharge-records.csv server/ci-records.csv
           @'
           [Server]
