@@ -1,6 +1,7 @@
 #Requires AutoHotkey v2.0
 #SingleInstance Ignore
 #Include vendor\HttpServer.ahk
+#Include RecordStore.ahk
 
 Persistent()
 config := A_ScriptDir "\config.ini"
@@ -16,6 +17,10 @@ if StrLower(IniRead(config, "Server", "AutoOpenBrowser", "true")) = "true"
 HandleRequest(req, rsp) {
     rsp["Cache-Control"] := "no-store"
     rsp["X-Content-Type-Options"] := "nosniff"
+    if req.Verb = "POST" && req.AbsPath = "/api/records" {
+        SaveRecord(req, rsp)
+        return
+    }
     if req.Verb != "GET" {
         rsp("Method not allowed", 405)
         return
@@ -63,7 +68,7 @@ ServeCsv(req, rsp) {
             return
         }
         if !RegExMatch(file, "i)^(?:[A-Z]:\\|\\\\)")
-            file := A_ScriptDir "\\" file
+            file := A_ScriptDir "\" file
         if !FileExist(file) {
             rsp("Data file unavailable", 503)
             return
@@ -73,5 +78,46 @@ ServeCsv(req, rsp) {
         rsp(csv)
     } catch {
         rsp("Unable to read data file", 503)
+    }
+}
+
+SaveRecord(req, rsp) {
+    global config, baseUrl
+    if req.Headers.Get("X-Discharge-Client", "") != "1"
+        || req.Headers.Get("Origin", "") != RTrim(baseUrl, "/")
+        || req.Headers.Get("Sec-Fetch-Site", "same-origin") = "cross-site" {
+        rsp("Forbidden", 403)
+        return
+    }
+    if !RegExMatch(req.Headers.Get("Content-Type", ""), "i)^application/json(?:;|$)") {
+        rsp("JSON required", 400)
+        return
+    }
+    try {
+        if !(req.Body is Buffer) || req.Body.Size > 65536 {
+            rsp("Invalid request body", 400)
+            return
+        }
+        try payload := JSON.parse(StrGet(req.Body, "UTF-8"))
+        catch {
+            rsp("Invalid JSON", 400)
+            return
+        }
+        file := IniRead(config, "Data", "DischargeRecordsFile", "")
+        if file = "" {
+            rsp("Data file not configured", 503)
+            return
+        }
+        if !RegExMatch(file, "i)^(?:[A-Z]:\\|\\\\)")
+            file := A_ScriptDir "\" file
+        if !FileExist(file) {
+            rsp("Data file unavailable", 503)
+            return
+        }
+        status := AppendRecord(file, payload)
+        rsp["Content-Type"] := "application/json"
+        rsp(status = 201 ? '{"status":"saved"}' : '{"status":"rejected"}', status)
+    } catch {
+        rsp("Unable to save record", 503)
     }
 }
